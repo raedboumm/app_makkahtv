@@ -56,6 +56,15 @@ class MainDrawer extends StatelessWidget {
                     subColor: subColor,
                     onTap: () { Navigator.pop(context); onNavigate(1); },
                   ),
+                  _navItem(
+                    context,
+                    icon: Icons.video_library_rounded,
+                    label: 'مكتبة البرامج',
+                    isSelected: currentIndex == 2,
+                    textColor: textColor,
+                    subColor: subColor,
+                    onTap: () { Navigator.pop(context); onNavigate(2); },
+                  ),
 
                   _sectionItem(
                     context,

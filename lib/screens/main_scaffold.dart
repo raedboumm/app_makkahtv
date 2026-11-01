@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../app_theme.dart';
 import '../pip_state.dart';
-import '../widgets/main_drawer.dart';
 import 'home_screen.dart';
 import 'live_tab.dart';
-import 'programs_tab.dart';
+import 'programs_library_screen.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -31,22 +30,6 @@ class _MainScaffoldState extends State<MainScaffold> {
     }
   }
 
-  Future<void> _scrollToSection(GlobalKey key) async {
-    // If not already on home tab, switch first then wait for render
-    if (_currentIndex != 0) {
-      setState(() => _currentIndex = 0);
-      await Future.delayed(const Duration(milliseconds: 350));
-    }
-    final ctx = key.currentContext;
-    if (ctx != null) {
-      await Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -64,14 +47,6 @@ class _MainScaffoldState extends State<MainScaffold> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         extendBody: true,
-        drawer: MainDrawer(
-          currentIndex: _currentIndex,
-          onNavigate: _setIndex,
-          onScrollToSchedule:   () => _scrollToSection(HomeScreen.scheduleKey),
-          onScrollToPrograms:   () => _scrollToSection(HomeScreen.programsKey),
-          onScrollToInterviews: () => _scrollToSection(HomeScreen.interviewsKey),
-          onScrollToSocial:     () => _scrollToSection(HomeScreen.socialKey),
-        ),
         body: Stack(
           children: [
             IndexedStack(
@@ -85,7 +60,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                   ),
                 ),
                 _NestedNav(navKey: _navKeys[1], child: const LiveTab()),
-                _NestedNav(navKey: _navKeys[2], child: const ProgramsTab()),
+                _NestedNav(navKey: _navKeys[2], child: const ProgramsLibraryScreen()),
               ],
             ),
             // Full-screen cover for home-page PiP — raw video-only layer.
@@ -154,8 +129,8 @@ class _MainScaffoldState extends State<MainScaffold> {
             label: 'البث المباشر',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.tv_rounded),
-            label: 'أحدث البرامج',
+            icon: Icon(Icons.video_library_rounded),
+            label: 'مكتبة البرامج',
           ),
         ],
       ),

@@ -1,0 +1,52 @@
+@import './variables.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+   font-family: var(--font-arabic);
+    color: #222;
+    scroll-behavior: smooth;
+    background-color: #fafafa
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+.btnplay {
+    position: absolute;
+    top: 35%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+/* Full-width site */
+.container {
+    box-sizing: border-box;
+    width: 100%;
+    padding-inline:clamp(8px,5vw,80px);max-width: 1440px;
+    margin: 0 auto;
+}
+
+/* Fluid container variant */
+.container-fluid {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: clamp(8px, 5vw, 24px);
+}
+
+img {
+    max-width: 100%;
+    display: block
+}
+
+ul {
+  list-style: none;
+}

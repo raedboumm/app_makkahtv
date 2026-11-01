@@ -1,0 +1,326 @@
+
+:root {
+    --makkah-gold: #d7ac5b;
+    --makkah-dark: #1a1a1a;
+    --gray-50: #f9fafb;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --white: #fff;
+    --red-600: #dc2626
+}
+
+.relative {
+    position: relative
+}
+
+.absolute {
+    position: absolute
+}
+
+.inset-0 {
+    inset: 0
+}
+
+.top-2 {
+    top: .5rem
+}
+
+.right-2 {
+    right: .5rem
+}
+
+.top-4 {
+    top: 1rem
+}
+
+.right-4 {
+    right: 1rem
+}
+
+.bottom-0 {
+    bottom: 0
+}
+
+.left-0 {
+    left: 0
+}
+
+.overflow-hidden {
+    overflow: hidden
+}
+
+.rounded-lg {
+    border-radius: .75rem
+}
+
+.rounded {
+    border-radius: .375rem
+}
+
+.rounded-full {
+    border-radius: 9999px
+}
+
+.shadow-md {
+    box-shadow: 0 6px 18px #00000014
+}
+
+.shadow-lg {
+    box-shadow: 0 12px 30px #00000026
+}
+
+.bg-white {
+    background-color: var(--white)
+}
+
+.bg-red-600 {
+    background-color: var(--red-600)
+}
+
+.text-white {
+    color: var(--white)
+}
+
+.text-gray-200 {
+    color: #e5e7eb
+}
+
+.text-gray-300 {
+    color: var(--gray-300)
+}
+
+.text-gray-500 {
+    color: var(--gray-500)
+}
+
+.text-gray-600 {
+    color: var(--gray-600)
+}
+
+.text-gray-800 {
+    color: var(--gray-800)
+}
+
+.text-makkah-dark {
+    color: var(--makkah-dark)
+}
+
+.font-bold {
+    font-weight: 700
+}
+
+.text-sm {
+    font-size: .875rem;
+    line-height: 1.25rem
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem
+}
+
+.p-4 {
+    padding: 1rem
+}
+
+.p-6 {
+    padding: 1.5rem
+}
+
+.px-2 {
+    padding-inline:.5rem}
+
+.px-3 {
+    padding-inline:.75rem}
+
+.px-4 {
+    padding-inline:1rem}
+
+.py-1 {
+    padding-block:.25rem}
+
+.mb-2 {
+    margin-bottom: .5rem
+}
+
+.mb-3 {
+    margin-bottom: .75rem
+}
+
+.mr-1 {
+    margin-left: .25rem
+}
+
+.flex {
+    display: flex
+}
+
+.items-center {
+    align-items: center
+}
+
+.justify-between {
+    justify-content: space-between
+}
+
+.gap-4 {
+    gap: 1rem
+}
+
+.inline-block {
+    display: inline-block
+}
+
+.cursor-pointer {
+    cursor: pointer
+}
+
+.w-full {
+    width: 100%
+}
+
+.h-full {
+    height: 100%
+}
+
+.h-48 {
+    height: 12rem
+}
+
+.h-96 {
+    height: 27.21rem
+}
+
+.object-cover {
+    object-fit: cover
+}
+
+.from-black {
+    --from: #000c
+}
+
+.via-transparent {
+    --via: #0000
+}
+
+.to-transparent {
+    --to: #0000
+}
+
+.bg-gradient-to-t {
+    background: linear-gradient(to top,var(--from,#000c)0%,var(--via,#0000)50%,var(--to,#0000)100%)
+}
+
+.relative.h-96>img {
+    display: block
+}
+
+.breaking-badge,.breaking-small {
+    letter-spacing: .2px;
+    align-items: center;
+    gap: .4rem;
+    font-weight: 800;
+    display: inline-flex
+}
+
+.breaking-badge {
+    background: var(--red-600);
+    color: #fff;
+    border-radius: 9999px;
+    padding: .35rem .75rem;
+    font-size: .85rem;
+    animation: 2s infinite pulse
+}
+
+.breaking-small {
+    background: var(--red-600);
+    color: #fff;
+    z-index: 2;
+    border-radius: 9999px;
+    padding: .2rem .6rem;
+    font-size: .72rem;
+    position: relative
+}
+
+@keyframes pulse {
+    0%,to {
+        opacity: 1
+    }
+
+    50% {
+        opacity: .7
+    }
+}
+
+.inline-block.bg-makkah-gold {
+    background: #d7ac5b;
+    color:white;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.p-4 .inline-block.bg-makkah-gold {
+    padding: 7px 10px 7px 40px;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.absolute.bottom-0.right-0.left-0.p-6 {
+    text-shadow: 0 1px 2px #00000059
+}
+
+.bg-white.rounded-lg.shadow-md.overflow-hidden.card-hover.cursor-pointer .relative img {
+    object-fit: cover;
+    width: 100%;
+    height: 230px;
+    display: block
+}
+
+.p-4 .text-lg {
+    font-size: 1.05rem
+}
+
+.p-4 .text-sm {
+    font-size: .92rem
+}
+
+.text-2xl.font-bold.text-makkah-gold {
+    color: var(--makkah-gold)
+}
+
+.bg-makkah-gold {
+    background-color: var(--makkah-gold)
+}
+
+i.fas,i.far,i.fab {
+    vertical-align: middle
+}
+
+/* نعمل reset للعداد داخل صندوق "الأكثر مشاهدة" */
+.most-viewed {
+  counter-reset: mv;
+}
+
+/* نخبّي الرقم الأصلي (1,2,3) ونبدّلو بمخرجة الـcounter */
+.most-viewed .rank {
+  color: transparent;         /* ما يمسّش الlayout */
+  position: relative;
+}
+
+/* نعرض ١،٢،٣... بصيغة Arabic-Indic */
+.most-viewed .rank::after {
+  counter-increment: mv;
+  content: counter(mv, arabic-indic);
+  color: #d7ac5b;
+  font-size: 1.4rem;
+  font-weight: 700;
+}

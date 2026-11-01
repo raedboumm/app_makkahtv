@@ -1,0 +1,35 @@
+:root {
+  /* Fonts */
+  --font-arabic: 'Noto Kufi Arabic', sans-serif;
+
+  /* Brand Colors */
+  --makkah-gold: #D4AF37;
+  --makkah-dark: #1a1a1a;
+  --makkah-black: #1a1a1a;
+  --makkah-gray: #353333;
+  --makkah-white: #fff;
+  --makkah-green: #0d7c3a;
+  --makkah-accent: wheat;
+
+  /* Grays */
+  --gray-50: #f9fafb;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+
+  /* UI Colors */
+  --text-light: #f5f5f5;
+  --text-gray: #888;
+  --bg-light: #f7f7f7;
+  --bg-white: #ffffff;
+  --white: #fff;
+  --red-600: #dc2626;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,0.15);
+}

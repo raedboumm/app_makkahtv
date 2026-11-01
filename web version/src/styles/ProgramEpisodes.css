@@ -1,0 +1,352 @@
+.program-episodes .episodes-wrapper{
+  margin: 0 auto; 
+ 
+}
+.episodes-wrapper.BLkmeetings {
+    background: #fff;
+    width: 100%;
+    padding: 30px 0;
+    margin: 30px 0 0;max-width:100%
+}
+.episodes-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: var(--text-primary, #222);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.title-bar {
+  width: 4px;
+  height: 24px;
+  background: var(--makkah-gold);
+  border-radius: 2px;
+}
+
+/* Episodes Grid & Swiper */
+.program-episodes .episodes-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) ;
+  gap: 20px !important;
+  width: 100%;
+  margin-bottom: 0;
+  position: relative;
+  flex: 1;
+}
+section.episodes-wrapper {
+    margin: 2rem auto;
+}
+.episodes-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) ;
+  gap: 20px !important;
+  width: 100%;
+  margin-bottom: 0;
+  position: relative;
+  flex: 1;
+}
+
+/* ===== Card ===== */
+.episode-card {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  color: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #111;
+  /* نسبة العرض للطول (بوستر عمودي مثل نتفليكس) */
+  aspect-ratio: 3 / 4;
+  isolation: isolate; /* لإدارة z-index داخلياً */
+  will-change: transform;
+  transition: transform 220ms ease, box-shadow 220ms ease, z-index 0s;
+ 
+}
+
+/* الصورة */
+.episode-image,
+.episode-image img {
+  width: 100%;
+  height: 100%;
+}
+.episode-image img {
+  object-fit: cover;
+  display: block;
+  transform: scale(1.01);
+  transition: opacity 220ms ease, transform 300ms ease;
+}
+
+/* Hover image swap */
+.episode-image { position: relative; }
+.episode-image .img-hover {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  height: auto;
+  width: 301px;
+}
+.episode-image .img-default { opacity: 1; }
+.episode-card:hover .episode-image .img-hover { opacity: 1; }
+.episode-card:hover .episode-image .img-default { opacity: 0; }
+
+/* Overlay */
+.episode-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.episode-card:hover .episode-overlay,
+.episode-card.active .episode-overlay {
+  opacity: 1;
+}
+
+.play-button {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+.play-button:hover {
+  transform: scale(1.1);
+}
+
+/* Overlay السفلي (التفاصيل) */
+.episode-hover {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  inset: auto 0 0 0;
+  background: linear-gradient(180deg, rgb(0, 0, 0) 0%, rgba(0,0,0,.85) 60%, rgba(0,0,0,.95) 100%);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 200ms ease, transform 200ms ease;
+  pointer-events: none;
+  max-height: 60%;
+  height: 60%;
+  padding:14px 14px 50px;
+}
+
+/* نصوص */
+.ep-program {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  line-height: 1.2;
+}
+.ep-title {
+  font-size: 11px;
+  opacity: .95;
+  margin: 0 0 6px;
+}
+.ep-time {
+  font-size: 12px;
+  opacity: 1;
+  text-decoration: underline;
+  margin: 0 0 10px;
+}
+
+/* أزرار */
+.ep-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: left;
+  position: absolute;
+  bottom: 15px;
+  left:15px
+
+}
+.ep-btn {
+  appearance: none;
+  border: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+.ep-btn:hover { background: rgba(255,255,255,.22); }
+.ep-btn.primary {
+  background: #fff;
+  color: #000;
+  bottom: 15px;
+}
+.ep-btn.primary:hover { background: #e9e9e9; }
+.ep-btn i { margin-inline-end: 6px; }
+
+/* ===== Hover تأثير نتفليكس ===== */
+.episode-card:hover,
+.episode-card:focus-visible,
+.episode-card.active {
+  z-index: 5;                            /* تطلع فوق الجيران */
+  transform: scale(1.1);                /* تكبير */
+  box-shadow: 0 18px 40px rgba(0,0,0,.45);
+}
+
+.episode-card:hover .episode-image img,
+.episode-card.active .episode-image img {
+  transform: scale(1.02);
+}
+
+.episode-card:hover .episode-hover,
+.episode-card:focus-visible .episode-hover,
+.episode-card.active .episode-hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* لتفادي قصّ الظل/التكبير عند أطراف الشبكة */
+.episodes-grid { padding: 6px; margin: -6px; }
+
+.episodes-dots {
+    display: flex;
+    gap: 10px;
+    margin-top: 0;
+    align-self: flex-start;
+    padding-top: 20px; 
+    margin: 0 auto;
+    justify-content: center;
+}
+
+.episodes-dots .dot {
+      width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgb(220 220 220);
+    background: rgb(220 220 220);
+    cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    opacity: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgb(34, 34, 34);
+}
+
+.episodes-dots .dot:hover,
+.episodes-dots .dot:focus-visible {
+  background: rgb(34, 34, 34);
+  border-color: rgb(34, 34, 34);
+  color: white;
+}
+
+.episodes-dots .dot.active {
+  background: rgb(34, 34, 34);
+  border-color: rgb(34, 34, 34);
+  transform: scale(1.1);
+  color: white;
+}
+
+/* اختياري: أصل التحويل يختلف حسب العمود باش ما "تطيرش" لبرا */
+.episodes-grid > .episode-card:nth-child(4n+1) { transform-origin: left center; }
+.episodes-grid > .episode-card:nth-child(4n)   { transform-origin: right center; }
+.episodes-grid > .episode-card:nth-child(4n+2),
+.episodes-grid > .episode-card:nth-child(4n+3) { transform-origin: center; }
+
+/* موبايل/تابلت: خفّف التأثير وخلي 2 في السطر */
+@media (max-width: 1024px) {
+  .episodes-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media(max-width:900px){
+    .episodes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        margin: 0 !important;
+    }
+}
+@media (max-width: 768px) {
+  .episodes-grid { grid-template-columns: repeat(2, 1fr)!important;}
+  .episode-card:hover,
+  .episode-card:focus-visible { transform: scale(1.06)!important; }
+}
+
+/* Mobile: single full-width card */
+
+@media(max-width:500px){
+  .episodes-grid { grid-template-columns: 1fr !important; }
+  .episode-image .img-hover { width: 100%; }
+  .episode-card:focus-visible { transform: scale(1.02); }
+  
+  /* Revenir à la disposition horizontale centrée sur mobile */
+  .episodes-wrapper {
+    flex-direction: column;
+    align-items: center; padding: 0;
+  }
+  .episodes-dots {
+    flex-direction: row;
+    justify-content: center; 
+        margin: 0 auto;width: auto;
+  }
+  section.program-episodes {
+    padding: 1.25rem 0 1rem;
+  }
+  .episode-card{width:100%}
+  .episode-card:hover,
+.episode-card:focus-visible,
+.episode-card.active {              
+  transform: scale(1);                
+}
+}
+
+@media(max-width:340px){ 
+
+  
+}
+
+/* احترام users اللي مفعّلين Reduce Motion */
+@media (prefers-reduced-motion: reduce) {
+  .episode-card,
+  .episode-image img,
+  .episode-hover { transition: none; }
+}
+/* Program Episodes (ARTE-like) */
+.pe-strip { padding: 2rem 0; }
+.pe-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+@media (max-width: 1200px){ .pe-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 900px){ .pe-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 640px){ .pe-grid{ grid-template-columns: 1fr; } }
+
+.pe-card { position: relative; display: block; color: #fff; border-radius: 12px; overflow: hidden; background: #0a0a0a; box-shadow: 0 6px 18px rgba(0,0,0,.12); transition: transform .25s ease, box-shadow .25s ease; }
+.pe-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+
+.pe-poster { position: relative; width: 100%; aspect-ratio: 16/9; background: #111; }
+.pe-poster .img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s ease, transform .35s ease; }
+.pe-poster .img-wide { opacity: 0; transform: scale(1.02); }
+.pe-card:hover .pe-poster .img-poster { opacity: 0; transform: scale(1.02); }
+.pe-card:hover .pe-poster .img-wide { opacity: 1; transform: scale(1); }
+
+.pe-gradient { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.8) 85%); z-index: 1; }
+.pe-text { position: absolute; inset-inline: 0; bottom: 0; z-index: 2; padding: .75rem 1rem 1rem; }
+.pe-text .program { font-size: .85rem; letter-spacing: .5px; opacity: .95; }
+.pe-text .episode { font-weight: 800; font-size: 1.5rem; line-height: 1.15; }
+
+.pe-hover { position: absolute; inset-inline: 0; bottom: 0; transform: translateY(100%); background: rgba(0,0,0,.92); color: #fff; padding: 1rem 1rem 1.1rem; transition: transform .28s ease; z-index: 3; }
+.pe-card:hover .pe-hover { transform: translateY(0); }
+.pe-hover .h-program { font-size: .9rem; opacity: .9; }
+.pe-hover .h-episode { font-weight: 800; font-size: 1.25rem; line-height: 1.2; }
+.pe-hover .h-desc { font-size: .95rem; line-height: 1.45; opacity: .9; margin: .35rem 0 .6rem; max-height: 4.5em; overflow: hidden; }
+.pe-hover .meta { display: flex; align-items: center; gap: .75rem; font-size: .9rem; opacity: .95; }
+.pe-hover .meta .spacer { flex: 1; }
+.pe-hover .meta i { margin-inline-end: .35rem; }

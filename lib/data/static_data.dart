@@ -253,4 +253,14 @@ class StaticData {
       body: 'تبث قناة مكة الفضائية تلاوة خاشعة لسورة الكهف مباشرة من المسجد الحرام بصوت أحد كبار القراء.\n\nتحظى تلاوات القرآن الكريم من رحاب الحرمين الشريفين بمتابعة واسعة من المسلمين حول العالم.\n\nيطلب كثير من المستمعين إتاحة هذه التلاوات في صيغ قابلة للتحميل للاستماع إليها في أي وقت.',
     ),
   ];
+
+  /// "الأكثر مشاهدة" — view counts come live from the YouTube API.
+  static const List<({String title, String url})> mostViewed = [
+    (title: 'أذكار المساء', url: 'https://www.youtube.com/watch?v=kM9qMU4b1T4'),
+    (title: 'أذكار الصباح', url: 'https://www.youtube.com/watch?v=VcY_TiljhkU'),
+    (title: 'مكة كلها حرم', url: 'https://www.youtube.com/watch?v=_6TbpUSNWT4'),
+    (title: 'نشيد ( مكة الغراء )', url: 'https://www.youtube.com/watch?v=Bvnr3Tjbx5k'),
+    (title: 'نشيد ( عهدٌ ومثابة )', url: 'https://www.youtube.com/watch?v=imK8V9aGPjQ'),
+    (title: 'نشيد ( حسنة في الحرم )', url: 'https://www.youtube.com/watch?v=haP2D-3ZHsU'),
+  ];
 }

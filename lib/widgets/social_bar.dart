@@ -44,7 +44,7 @@ class SocialBar extends StatelessWidget {
 }
 
 class _Social {
-  final IconData icon;
+  final FaIconData icon;
   final String url;
   final Color color;
   const _Social({required this.icon, required this.url, required this.color});

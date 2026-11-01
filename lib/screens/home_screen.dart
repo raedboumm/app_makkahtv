@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,15 +6,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../data/static_data.dart';
 import '../models/article.dart';
+import '../models/youtube_video.dart';
 import '../models/schedule_entry.dart';
 import '../pip_state.dart';
+import '../services/youtube_service.dart';
 import '../widgets/program_card.dart';
 import '../widgets/frequency_strip.dart';
+import '../widgets/video_card.dart';
 import 'news_detail_screen.dart';
 import 'program_detail_screen.dart';
 
@@ -22,12 +25,6 @@ const _homePipChannel = MethodChannel('makkah.tv/pip');
 const _homePipEvents  = EventChannel('makkah.tv/pip_events');
 
 class HomeScreen extends StatefulWidget {
-  // Section scroll keys — used by MainDrawer to jump to sections
-  static final scheduleKey    = GlobalKey();
-  static final programsKey    = GlobalKey();
-  static final interviewsKey  = GlobalKey();
-  static final socialKey      = GlobalKey();
-
   final VoidCallback? onWatchLive;
   final VoidCallback? onGoToPrograms;
   const HomeScreen({super.key, this.onWatchLive, this.onGoToPrograms});
@@ -84,31 +81,22 @@ class _HomeScreenState extends State<HomeScreen> {
           onBackToLive: _onBackToLive,
         )),
         SliverToBoxAdapter(
-          child: KeyedSubtree(
-            key: HomeScreen.scheduleKey,
-            child: _DailyScheduleSection(onVideoSelected: _onVideoSelected),
+          child: _DailyScheduleSection(onVideoSelected: _onVideoSelected),
+        ),
+        SliverToBoxAdapter(
+          child: _ProgramsSection(
+            onViewAll: widget.onGoToPrograms,
+            onVideoSelected: _onVideoSelected,
           ),
         ),
         SliverToBoxAdapter(
-          child: KeyedSubtree(
-            key: HomeScreen.programsKey,
-            child: _ProgramsSection(
-              onViewAll: widget.onGoToPrograms,
-              onVideoSelected: _onVideoSelected,
-            ),
-          ),
+          child: _MostViewedSection(onVideoSelected: _onVideoSelected),
         ),
         SliverToBoxAdapter(
-          child: KeyedSubtree(
-            key: HomeScreen.interviewsKey,
-            child: const _ChannelInfoSection(),
-          ),
+          child: const _ChannelInfoSection(),
         ),
         SliverToBoxAdapter(
-          child: KeyedSubtree(
-            key: HomeScreen.socialKey,
-            child: const _SocialSection(),
-          ),
+          child: const _SocialSection(),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 90)),
       ],
@@ -645,14 +633,18 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(
         children: [
-          Builder(
-            builder: (ctx) => IconButton(
-              icon: Icon(Icons.menu_rounded, color: iconColor, size: 27),
-              onPressed: () => Scaffold.of(ctx).openDrawer(),
+          // ── Dark / Light mode toggle ──
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: AppColors.gold,
+              size: 25,
             ),
+            tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
+            onPressed: () => context.read<ThemeProvider>().toggle(),
           ),
           const Spacer(),
-          // Centered logo in top bar
+          // ── Centered logo ──
           Image.asset(
             'assets/images/makkah-logo.png',
             height: 70,
@@ -664,10 +656,8 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: iconColor, size: 25),
-            onPressed: () {},
-          ),
+          // Placeholder to keep logo centred
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -892,11 +882,81 @@ class _ProgramsSection extends StatefulWidget {
 }
 
 class _ProgramsSectionState extends State<_ProgramsSection> {
+  // null = still loading; empty = API unavailable → static fallback
+  List<YouTubeVideo>? _latest;
+
+  @override
+  void initState() {
+    super.initState();
+    YouTubeService.fetchLatestVideos(limit: 10).then((v) {
+      if (mounted) setState(() => _latest = v);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : AppColors.lightText;
-    final programs = StaticData.programs;
+    final cardW = MediaQuery.of(context).size.width * 0.55;
+    final latest = _latest;
+
+    Widget list;
+    if (latest == null) {
+      list = ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        itemCount: 3,
+        itemBuilder: (_, i) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: SizedBox(width: cardW, child: const VideoCardSkeleton()),
+        ),
+      );
+    } else if (latest.isNotEmpty) {
+      list = ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        itemCount: latest.length,
+        itemBuilder: (_, i) {
+          final v = latest[i];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: SizedBox(
+              width: cardW,
+              child: VideoCard(
+                video: v,
+                onTap: () => widget.onVideoSelected(v.url, v.title),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      final programs = StaticData.programs;
+      list = ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        itemCount: programs.length,
+        itemBuilder: (ctx, i) {
+          final p = programs[i];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: ProgramCard(
+              program: p,
+              cardWidth: MediaQuery.of(context).size.width * 0.40,
+              onTap: p.youtubeUrl != null
+                  ? () => widget.onVideoSelected(p.youtubeUrl!, p.nameAr)
+                  : () => Navigator.push(
+                        ctx,
+                        MaterialPageRoute(
+                          builder: (_) => ProgramDetailScreen(program: p),
+                        ),
+                      ),
+            ),
+          );
+        },
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Column(
@@ -904,36 +964,111 @@ class _ProgramsSectionState extends State<_ProgramsSection> {
         children: [
           _SectionHeader(
             title: 'أحدث البرامج',
+            onViewAll: widget.onViewAll,
             textColor: textColor,
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              itemCount: programs.length,
-              itemBuilder: (ctx, i) {
-                final cardW = MediaQuery.of(context).size.width * 0.40;
-                final p = programs[i];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: ProgramCard(
-                    program: p,
-                    cardWidth: cardW,
-                    onTap: p.youtubeUrl != null
-                        ? () => widget.onVideoSelected(p.youtubeUrl!, p.nameAr)
-                        : () => Navigator.push(
-                              ctx,
-                              MaterialPageRoute(
-                                builder: (_) => ProgramDetailScreen(program: p),
-                              ),
-                            ),
-                  ),
-                );
-              },
-            ),
-          ),
+          SizedBox(height: latest != null && latest.isEmpty ? 200 : 210, child: list),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Most viewed section (الأكثر مشاهدة) ──────────────────────────────────────
+
+class _MostViewedSection extends StatefulWidget {
+  final void Function(String url, String title) onVideoSelected;
+  const _MostViewedSection({required this.onVideoSelected});
+
+  @override
+  State<_MostViewedSection> createState() => _MostViewedSectionState();
+}
+
+class _MostViewedSectionState extends State<_MostViewedSection> {
+  // Real counts only: null = still loading, missing id = API couldn't resolve it.
+  Map<String, int>? _counts;
+
+  @override
+  void initState() {
+    super.initState();
+    final ids = StaticData.mostViewed
+        .map((e) => YouTubeService.extractVideoId(e.url) ?? '')
+        .toList();
+    YouTubeService.fetchViewCounts(ids).then((c) {
+      if (mounted) setState(() => _counts = c);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.lightText;
+    final subColor = isDark ? Colors.white54 : AppColors.lightTextSub;
+    const items = StaticData.mostViewed;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(title: 'الأكثر مشاهدة', textColor: textColor),
+          const SizedBox(height: 6),
+          ...List.generate(items.length, (i) {
+            final item = items[i];
+            final id = YouTubeService.extractVideoId(item.url) ?? '';
+            final counts = _counts;
+            final Widget views;
+            if (counts == null) {
+              views = Container(
+                width: 36,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface2 : AppColors.lightSurface3,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            } else {
+              final c = counts[id];
+              views = Text(
+                c == null ? 'غير متاح' : YouTubeService.formatViewCount(c),
+                style: TextStyle(color: subColor, fontSize: 11),
+              );
+            }
+            return InkWell(
+              onTap: () => widget.onVideoSelected(item.url, item.title),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('${i + 1}',
+                          style: const TextStyle(
+                              color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: textColor, fontSize: 14)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.remove_red_eye_outlined, size: 13, color: AppColors.gold),
+                    const SizedBox(width: 4),
+                    views,
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1196,7 +1331,7 @@ class _SocialSection extends StatelessWidget {
 }
 
 class _SocialItem {
-  final IconData icon;
+  final FaIconData icon;
   final String url;
   const _SocialItem({required this.icon, required this.url});
 }

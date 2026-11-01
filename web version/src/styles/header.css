@@ -1,0 +1,376 @@
+@import './variables.css';
+
+/* ====== Header Base ====== */
+.header {
+    position: sticky;
+    top: 0;
+    color: #fff;
+    font-family: var(--font-arabic);
+    z-index: 999;
+    background: #d7ac5b;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 31%);
+}
+
+.header--scrolled {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Keeps the page content from touching the sticky header — filled with
+   brown instead of a plain margin, which would just expose the page
+   background as a blank white gap. */
+.header {
+    border-bottom: 14px solid #33241b;
+    transition: border-bottom-width .35s ease;
+}
+
+.header--scrolled {
+    border-bottom-width: 0;
+}
+
+/* ====== Top Bar ====== */
+/* Collapses smoothly instead of an instant display:none. */
+.header-top {
+    padding: 6px 0;
+    font-size: 14px;
+    background: #33241b;
+    max-height: 60px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height .35s ease, opacity .25s ease, padding .35s ease;
+}
+
+.header--scrolled .header-top {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+}
+
+.header-top-content {
+    justify-content: space-between;
+    align-items: center;
+    height: 36px;
+    display: flex
+}
+
+.header-date {
+    color: #fff;
+    align-items: center;
+    gap: 6px;
+    display: flex
+}
+
+.header-social a {
+    color: #ffffff;
+    margin-left: 15px;
+    transition: all .3s
+}
+
+.header-social a:hover {
+    color: #fff
+}
+
+/* ====== Main Header ====== */
+/* Explicit background (not just inherited from .header) so this bar is
+   always the same color, scrolled or not. Hardcoded rather than using
+   var(--makkah-gold), since that variable is itself defined twice (in
+   variables.css and again in index.css) with two different values. */
+.header-main {
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    background: #d7ac5b;
+    transition: padding .35s ease;
+    display: flex
+}
+
+/* A bit bigger once the top bar is hidden, so the bar still feels
+   substantial instead of shrinking twice over. */
+.header--scrolled .header-main {
+    padding: 16px 0;
+}
+
+/* Logo Area */
+.logo-box {
+    align-items: center;
+    display: flex;
+}
+.logo-box img{
+        object-fit: contain;
+    display: block;
+    cursor: pointer;
+    width: 68px;
+    height: 68px;
+    transition: width .35s ease, height .35s ease;
+}
+
+.header--scrolled .logo-box img {
+    width: 76px;
+    height: 76px;
+}
+
+@media (max-width: 768px) {
+    .logo-box {
+        margin-right: 20px;
+    }
+
+    .logo-box img {
+        width: 72px;
+        height: 72px;
+    }
+
+    .header--scrolled .logo-box img {
+        width: 76px;
+        height: 76px;
+    }
+}
+
+.logo-icon {
+    background: #0a0000;
+    border-radius: 10px;
+    padding: 2px;
+    font-size: 2px
+}
+
+.logo-title {
+    margin-top: 15px;
+    font-size: 22px;
+    font-weight: 700
+}
+
+
+.logo-subtitle {
+    color: #aaa;
+    font-size: 13px
+}
+
+/* ====== Desktop Menu ====== */
+.nav-desktop {
+    align-items: center;
+    gap: 22px;
+    display: flex
+}
+
+
+.nav-link {
+    color: #000;
+    font-weight: 500;
+       align-items: center;
+    gap: 8px;
+    display: flex;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    transition: all .3s
+}
+
+.nav-link:hover {
+    background-color: #e1d9cb;
+    /* border-color: #000; */
+    border-radius: 10px;
+    text-decoration: none
+}
+
+.header-actions button {
+    color: #000;
+    cursor: pointer;
+    background: #e1d9cb;
+    border: none;
+    margin-left: 15px;
+    font-size: 18px;
+    transition: all .7s;
+    border-radius: 6px;
+    padding: 6px 10px
+}
+
+.header-actions button:hover {
+    color: #fff
+}
+
+
+/* ====== Search + Menu Icons ====== */
+.header-actions button {
+  color: rgb(0, 0, 0);
+  font-size: 18px;
+  margin-left: 15px;
+  cursor: pointer;
+  transition: 0.7s;
+  background: none;
+  border: none;
+}
+
+.header-actions button:hover {
+  color:white
+}
+
+/* ====== Search Bar ====== */
+.search-box {
+    padding: 12px 0
+}
+
+.search-box input {
+    color: #000;
+    background: #ffffff7e;
+    border: 1px solid #fff;
+    border-radius: 8px;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 10px 17px;
+    font-family: var(--font-arabic);
+}
+
+/* ====== Mobile Menu ====== */
+.mobile-menu {
+    background: #222;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+    display: flex
+}
+
+.mobile-menu a, .mobile-link {
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 15px;
+    transition: all .3s;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    display: flex
+}
+
+.mobile-menu a:hover, .mobile-link:hover {
+    background: var(--makkah-gold);
+    color: var(--makkah-dark)
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .nav-desktop {
+        display:none
+    }
+
+    /* Make header smaller on mobile */
+    .header-main {
+        padding: 6px 0;
+        position: relative;
+        justify-content: center;
+    }
+
+    /* Keep the bar the same height on scroll — the desktop rule below grows
+       the padding on scroll, which isn't wanted on mobile. */
+    .header--scrolled .header-main {
+        padding: 6px 0;
+    }
+
+    /* Logo stays centered in the bar now that the toggle is taken out of
+       flow (below), instead of fighting it for flex space. */
+    .logo-box {
+        margin: 0;
+    }
+
+    /* Taken out of flow and anchored to the bar itself (not the viewport)
+       so it keeps a fixed, comfortable distance from the edge and scrolls
+       away naturally with the sticky header instead of floating in place. */
+    .header-actions {
+        position: absolute;
+        top: 50%;
+        right: 16px;
+        transform: translateY(-50%);
+        margin: 0;
+        z-index: 10;
+    }
+
+    /* Icon only, no button background */
+    .menu-btn {
+        background: transparent !important;
+        color: #33241b !important;
+        padding: 8px 12px !important;
+        margin-left: 0 !important;
+        border-radius: 6px;
+    }
+}
+
+@media (min-width: 992px) {
+    .menu-btn {
+        display:none
+    }
+}
+
+/* Tighter header on small phones */
+@media (max-width: 480px) {
+    .header-top {
+        padding: 4px 0;
+        max-height: 70px;
+    }
+
+    .header-top-content {
+        height: auto;
+        min-height: 32px;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .header-date {
+        font-size: 10px;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .header-social {
+        display: flex;
+        gap: 2px;
+    }
+
+    .header-social a {
+        margin-left: 8px;
+        font-size: 13px;
+    }
+
+    .logo-box img {
+        width: 68px;
+        height: 68px;
+    }
+
+    .header--scrolled .logo-box img {
+        width: 72px;
+        height: 72px;
+    }
+
+    .header-actions {
+        right: 10px;
+    }
+
+    .menu-btn {
+        font-size: 16px !important;
+    }
+}
+/* Align icon + text right (RTL) ✅ */
+
+
+
+.nav-link.active-link, .mobile-menu a.active-link, .mobile-link:hover, .mobile-link.active-link {
+    color: #272727;
+    background: #e1d9cb;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 10px;
+}
+.fa-broadcast-tower{
+    color: rgb(231, 11, 11);
+}
+
+/* ====== Live indicator dot (nav) ====== */
+.live-nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e70b0b;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(231, 11, 11, 0.7);
+    animation: live-nav-pulse 1.5s infinite;
+}
+
+@keyframes live-nav-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(231, 11, 11, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(231, 11, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 11, 11, 0); }
+}

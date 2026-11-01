@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+
+
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>قناة مكة | Makkah TV</title>
+  <link rel="icon" type="image/x-icon" href="/makkahTv.ico">
+  <!-- Preload hero background image -->
+  <link rel="preload" as="image" href="/src/assets/background.png">
+
+<!-- Font Awesome removed (will rely on local icon strategy or existing builds) -->
+  <!-- Google Font: Tajawal -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100..900&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome (single include, no integrity to avoid SRI mismatch) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <!-- Base theme vars to match original -->
+  <style>
+    :root{
+      --makkah-gold:#D4AF37;
+      --makkah-dark:#DBCBB1;
+      --makkah-green:#0d7c3a;
+    }
+    html,body{font-family:"Noto Kufi Arabic",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  </style>
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

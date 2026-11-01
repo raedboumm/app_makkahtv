@@ -1,0 +1,426 @@
+.daily-wrapper {
+    color: #1a1a1a;
+    direction: rtl;
+    background-color: #f9f9f9;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.daily-hero {
+    background: linear-gradient(135deg, #d4af37 0%, #dbcbb1 100%);
+    padding: 4rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.daily-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.1)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,144C960,149,1056,139,1152,133.3C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    background-size: cover;
+    opacity: 0.3;
+}
+
+.daily-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.daily-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin: 0;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.daily-subtitle {
+    font-size: 1.25rem;
+    color: #353333;
+    margin: 0;
+}
+
+/* Schedule Section */
+.daily-schedule {
+    padding: 3rem 0 5rem;
+    background-color: #fff;
+}
+
+.schedule-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.schedule-header h2 {
+    font-size: 2.5rem;
+    color: #1a1a1a;
+    margin: 0;
+    margin-bottom: 0.5rem;
+}
+
+.schedule-header p {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0;min-height: 20px;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    max-width: 100%;
+}
+
+.schedule-card {
+    background: linear-gradient(135deg, #e1d9cb 0%, #f5f1e8 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border-left: 5px solid #d4af37;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    animation: slideUp 0.6s ease-out forwards;
+    opacity: 0;
+        display: flex;
+    align-items: center;
+    height: 240px;
+    align-content: center;
+    justify-content: center;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.schedule-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-image {
+    position: relative;
+    width: 40%;
+    min-height: 160px;
+    overflow: hidden;
+    order: 2;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.15), transparent 30%);
+}
+
+.card-image::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, rgba(225, 217, 203, 0.8), transparent);
+    z-index: 2;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: brightness(1.05) contrast(1.1) saturate(1.15);
+}
+
+.schedule-card:hover .card-image img {
+    transform: scale(1.15);
+    filter: brightness(1.15) contrast(1.2) saturate(1.25);
+}
+
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(212, 175, 55, 0.4) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-number {
+    display: inline-block;
+    background: #fff;
+    color: #d4af37;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #e1d9cb 0%, #f5f1e8 100%);
+    width: 60%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.program-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.program-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #1a1a1a;
+    font-weight: 700;
+    background: rgba(212, 175, 55, 0.25);
+    padding: 0.6rem 1rem;
+    border-radius: 50px;
+    border: 1px solid #d4af37;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.program-time i {
+    color: #d4af37;
+    font-size: 1rem;
+}
+
+.card-accent {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #d4af37 0%, transparent 100%);
+}
+
+/* Highlights Section */
+.daily-highlights {
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #f9f9f9 0%, #f5f1e8 100%);
+}
+
+.daily-highlights h2 {
+    text-align: center;
+    font-size: 2rem;
+    color: #1a1a1a;
+    margin-bottom: 2rem;
+}
+
+.highlights-grid {
+  /*  display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));*/
+    gap: 2rem;
+     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.highlight-card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 0;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-top: 4px solid #d4af37;
+    display: flex;
+    flex-direction: column;
+        max-width: 350px;
+}
+
+.highlight-card.featured {
+    border-top: 4px solid #d4af37;
+  /*  transform: scale(1.05);*/
+}
+
+.highlight-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(212, 175, 55, 0.2);
+}
+
+.highlight-card.featured:hover {
+    transform: scale(1.08) translateY(-8px);
+}
+
+.highlight-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.highlight-card:hover .highlight-image {
+    transform: scale(1.05);
+}
+
+.highlight-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #d4af37 0%, #e1d9cb 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: -40px auto 1.5rem;
+    font-size: 2.2rem;
+    color: #1a1a1a;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    border: 4px solid #fff;
+    position: relative;
+    z-index: 5;
+}
+
+.highlight-card h3 {
+    font-size: 1.4rem;
+    color: #1a1a1a;
+    margin: 0;
+    margin-bottom: 0.8rem;
+    padding: 0 1.5rem;
+}
+
+.highlight-card p {
+    color: #666;
+    margin: 0;
+    margin-bottom: 1rem;
+    padding: 0 1.5rem;
+    line-height: 1.6;min-height: 50px;
+}
+
+.time-badge {
+    display: inline-block;
+    background: #e1d9cb;
+    color: #1a1a1a;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    width: auto;
+    margin: 0 auto 20px;
+}
+
+/* CTA Section */
+.daily-cta {
+    background: linear-gradient(135deg, #1a1a1a 0%, #353333 100%);
+    padding: 3rem 0; 
+}
+
+.cta-content {
+    text-align: center;
+    color: #fff;
+}
+
+.cta-content h2 {
+    font-size: 2rem;
+    margin: 0;
+    margin-bottom: 0.5rem;
+}
+
+.cta-content p {
+    font-size: 1.1rem;
+    color: #d4af37;
+    margin: 0;
+    margin-bottom: 1.5rem;
+}
+
+.cta-button {
+    background: #d4af37;
+    color: #1a1a1a;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cta-button:hover {
+    background: #e1d9cb;
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .daily-title {
+        font-size: 2.5rem;
+    }
+
+    .daily-subtitle {
+        font-size: 1rem;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .highlight-card.featured {
+        transform: scale(1);
+    }
+
+    .highlight-card.featured:hover {
+        transform: translateY(-8px);
+    }
+
+    .daily-highlights h2 {
+        font-size: 1.5rem;
+    }
+
+    .cta-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .card-content {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .program-name {
+        font-size: 1.1rem;
+    }
+
+    .program-time {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.9rem;
+        gap: 0.4rem;
+    }
+
+    .program-time i {
+        font-size: 0.9rem;
+    }
+
+    .card-image {
+        width: 35%;
+        min-height: 120px;
+    }
+}

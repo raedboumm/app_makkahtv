@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files and folders as-is (assets, images, favicon...)
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Everything else goes to the React app (client-side routing)
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Fallback if mod_rewrite is unavailable
+ErrorDocument 404 /index.html

@@ -1,0 +1,268 @@
+/* ========== Base Reset (خفيف) ========== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+  background: #f9f9f9;
+  color: #1a1a1a;
+  line-height: 1.7;
+}
+
+/* إزالة تنقيط الروابط عند اللمس (موبايل) */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+/* ========== Variables (ألوان وهوامش) ========== */
+:root {
+  --makkah-gold: #DBCBB1;
+  --makkah-gold-2: #F4D03F;
+  --makkah-dark: #1a1a1a;
+  --makkah-green: #0d7c3a;
+
+  --bg: #f9f9f9;
+  --text: ##3F3E3A;
+  --muted: #6b7280;     /* رمادي للنصوص الثانوية */
+  --card: #ffffff;
+  --border: #e5e7eb;
+
+
+  --r-xxs: 6px;
+  --r-xs: 8px;
+  --r-sm: 10px;
+  --r-md: 12px;
+
+  --shadow-sm: 0 4px 12px rgba(0,0,0,.06);
+  --shadow-md: 0 10px 25px rgba(0,0,0,.12);
+}
+
+/* ========== Layout Helpers ========== */
+
+
+.section {
+  padding-block: 56px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* حركة لطيفة للبطاقات */
+.card-hover {
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========== Typography ========== */
+h1, h2, h3, h4 {
+  line-height: 1.25;
+  margin: 0 0 12px;
+  font-weight: 800;
+}
+h1 { font-size: clamp(24px, 4vw, 36px); }
+h2 { font-size: clamp(22px, 3.2vw, 28px); }
+h3 { font-size: clamp(18px, 2.6vw, 22px); }
+p  { margin: 0 0 12px; color: var(--text); }
+.muted { color: var(--muted); }
+
+/* ========== Buttons ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--r-xs);
+  border: 1px solid transparent;
+  font-weight: 700;
+  transition: transform .15s ease, background .2s ease, border-color .2s ease;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-gold {
+  background: linear-gradient(90deg, var(--makkah-gold), var(--makkah-gold-2));
+  color: var(--makkah-dark);
+}
+.btn-gold:hover {
+  filter: brightness(1.05);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border);
+}
+.btn-outline:hover {
+  border-color: var(--makkah-gold);
+}
+
+/* ========== Badges / Labels ========== */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.badge-gold {
+  background: var(--makkah-gold);
+  color: var(--makkah-dark);
+}
+.badge-live {
+  background: #ef4444; /* red-500 */
+  color: #fff;
+}
+
+/* ========== Utility ========== */
+.hidden { display: none !important; }
+.center { display: grid; place-items: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: 1fr; gap: 24px; }
+
+@media (min-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ========== Theming blocks like hero/footer ========== */
+
+.gold-accent {
+  background: linear-gradient(90deg, var(--makkah-gold) 0%, var(--makkah-gold-2) 100%);
+}
+
+/* "أخبار" نبضة */
+.breaking-badge {
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.grid.news-grid >.card-hover > .relative, .news-grid>div .relative {
+    font-size: 0;
+}
+
+/* خطوط أيقونات FontAwesome لو ناوي تستعملها محلياً لاحقاً */
+/* تقدر تضيف link في index.html أو تبني sprite حسب الحاجة */
+.grid.news-grid .p-4 {
+    min-height: 180px;
+    padding:25px 20px 42px;
+}
+
+.articles-section .p-4 .text-lg
+
+ {
+    font-size: 15px;
+    margin-bottom: 15px;
+}
+main >.bg-white,   main > .programs-wrapper {
+    padding-bottom: 50px
+}
+@media(max-width:1200px){
+.logo-box img {
+    max-height: 85px;
+}
+.nav-link { 
+    font-size: 13px;
+}
+.hero-grid {
+    grid-template-columns: 60% 1fr; 
+}
+.news-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+h3.channelInfo-title {
+    font-size: 20px;
+}
+h3.prayer-title {
+    font-size: 14px;
+}
+.channelInfo-value { 
+    font-size: 14px; 
+}
+.episodes-wrapper {  
+}
+}
+@media(max-width:1024){
+.episode-hover { 
+    height: 75%;
+    max-height: 80%;
+}
+.prayer-box { 
+    margin-top: 0; 
+}
+.ep-program { 
+    font-size: 11px; 
+}
+.ep-title { 
+    font-size: 8px;
+}
+.ep-btn { 
+    padding: 4px 10px;
+    font-size: 10px; 
+}
+.ep-btn i { 
+    margin-top: -3px;
+}
+}
+@media(max-width:980px){     
+  .prayer-box { 
+        margin-top: 10px;
+    } }
+@media(max-width:767px){
+.grid.hero-grid iframe {
+    height: 230px;
+}
+   .grid.hero-grid iframe {
+    height: 230px;
+}
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media(max-width:480px){
+.episodes-pagination.dots {
+    margin-top: 25px !important;
+}
+.channelInfo-box {
+        display: none;
+    }
+}
+

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../data/static_data.dart';
 import '../pip_state.dart';
@@ -27,11 +27,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fadeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6000),
+      duration: const Duration(milliseconds: 3000),
     );
     _loadCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 9000),
+      duration: const Duration(milliseconds: 6000),
     );
     _shineCtrl = AnimationController(
       vsync: this,
@@ -59,8 +59,8 @@ class _SplashScreenState extends State<SplashScreen>
     _loadCtrl.forward();
     // Start pre-loading the live stream in the background during splash.
     LiveStreamPreloader.start(StaticData.liveStream.streamUrl);
-    // wait for logo to be fully visible (~6s), then flash shine
-    await Future.delayed(const Duration(milliseconds: 5800));
+    // wait for logo to be fully visible (~3s), then flash shine
+    await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
     await _shineCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 500));

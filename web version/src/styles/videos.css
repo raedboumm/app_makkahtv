@@ -1,0 +1,54 @@
+.videos-page {
+  padding: 50px 0;
+}
+
+.page-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ✅ Title */
+.page-title {
+  font-size: 28px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ✅ 4 Cards per row */
+.videos-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  /* 4 columns */
+  gap: 20px !important;
+  width: 100%;
+}
+
+/* ✅ Ensures the cards shrink instead of breaking to next line */
+.videos-grid>* {
+  min-width: 0 !important;
+}
+
+.videos-page h1 i {
+  color: #d4af37;
+}
+
+@media(max-width:900px) {
+  .videos-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media(max-width:650px) {
+  .videos-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media(max-width:450px) {
+  .videos-grid {
+    grid-template-columns: repeat(1, 1fr) !important;
+  }
+}

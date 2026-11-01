@@ -1,0 +1,80 @@
+
+
+.prayer-box {
+    color: #fff;
+    background: url('../assets/prayer.png') center/cover no-repeat, linear-gradient(135deg,rgba(26, 26, 26, 0.5),rgba(53, 51, 51, 0.5));
+    background-blend-mode: darken;
+    border: 1px solid #d4af372e;
+    border-radius: 12px;
+    margin-top: 56px;
+    padding: 1px 22px 20px;
+    box-shadow: 0 6px 18px #00000038
+}
+
+.prayer-title {
+    color: wheat;
+    letter-spacing: .2px;
+    align-items: center;
+    gap: 10px;
+    padding: 0 0 15px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    border-bottom: 1px solid rgb(255 255 255 / 13%);
+}
+
+.prayer-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    background: 0 0;
+    width: 100%
+}
+
+.prayer-table tr {
+    border-bottom: 1px solid rgb(255 255 255 / 7%);
+    cursor: pointer;
+}
+
+.prayer-table tr:last-child {
+    border-bottom: none
+}
+
+.prayer-name, .prayer-time {
+    vertical-align: middle;
+    padding: 8px 0;
+    font-size:13px;
+}
+
+.prayer-name {
+    color: #f9f9f9;
+    font-weight: 600
+}
+
+.prayer-time {
+    text-align: left;
+    color: wheat;
+    letter-spacing: .3px;
+    font-weight: 800
+}
+
+.prayer-table tr:hover td {
+    background: #ffffff0a;
+    transition: background .2s
+}
+
+@media (max-width: 480px) {
+    .prayer-box {
+        border-radius:10px;
+        padding: 16px
+    }
+
+    .prayer-title {
+        margin-bottom: 12px;
+        font-size: 1.1rem
+    }
+
+    .prayer-name,.prayer-time {
+        padding: 8px 0;
+        font-size: .95rem
+    }
+}
