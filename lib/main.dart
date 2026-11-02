@@ -3,13 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'screens/splash_screen.dart';
-import 'services/youtube_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Clear any stale empty cache that may have been written before the API key
-  // was configured (empty lists are now rejected, but old entries need purging).
-  YouTubeService.clearCache();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -12,9 +12,8 @@ import '../data/static_data.dart';
 import '../pip_state.dart';
 import '../widgets/frequency_strip.dart';
 
-// Channels for PiP on Android
+// Channel for PiP on Android (events come from the shared pipEvents stream)
 const _pipChannel = MethodChannel('makkah.tv/pip');
-const _pipEvents  = EventChannel('makkah.tv/pip_events');
 
 class LiveTab extends StatefulWidget {
   const LiveTab({super.key});
@@ -34,6 +33,7 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
   StreamSubscription? _pipSub;
   bool _pendingPipExit = false;
   bool _resumedBeforePipExit = false;
+  bool _tabVisible = false;
   final _freqKey = GlobalKey();
 
   @override
@@ -41,7 +41,7 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (Platform.isAndroid) {
-      _pipSub = _pipEvents.receiveBroadcastStream().listen(_onPipEvent);
+      _pipSub = pipEvents.listen(_onPipEvent);
     }
     // didChangeDependencies handles auto-start
   }
@@ -51,18 +51,18 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _pipSub?.cancel();
     _setVideoPlaying(false);
-    _videoCtrl?.dispose();
     _chewieCtrl?.dispose();
+    _videoCtrl?.dispose();
     super.dispose();
   }
 
-  void _onPipEvent(dynamic event) {
-    if (!mounted) return;
-    final isInPip = event as bool;
+  void _onPipEvent(bool isInPip) {
+    if (!mounted || pipOwner != 'live') return;
     if (isInPip && _chewieCtrl == null) return;
     pipModeNotifier.value = isInPip;
     setState(() => _inPipMode = isInPip);
     if (!isInPip) {
+      pipOwner = null;
       if (_resumedBeforePipExit) {
         // resumed already fired before this event — user expanded back to fullscreen
         _resumedBeforePipExit = false;
@@ -125,16 +125,22 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
 
     final stream = StaticData.liveStream;
 
+    final ctrl = VideoPlayerController.networkUrl(
+      Uri.parse(stream.streamUrl),
+      httpHeaders: const {'User-Agent': 'MakkahTV/1.0 Flutter'},
+    );
+    _videoCtrl = ctrl;
+    // Refresh (_resetPlayer) may dispose/replace the controller mid-init.
+    bool stale() => !mounted || _videoCtrl != ctrl;
     try {
-      _videoCtrl = VideoPlayerController.networkUrl(
-        Uri.parse(stream.streamUrl),
-        httpHeaders: const {'User-Agent': 'MakkahTV/1.0 Flutter'},
-      );
-      await _videoCtrl!.initialize();
+      await ctrl.initialize();
+      if (stale()) return;
 
       _chewieCtrl = ChewieController(
-        videoPlayerController: _videoCtrl!,
-        autoPlay: true,
+        videoPlayerController: ctrl,
+        // Don't start playing if the user switched tabs while loading.
+        autoPlay: _tabVisible,
+        deviceOrientationsAfterFullScreen: const [DeviceOrientation.portraitUp],
         looping: false,
         isLive: true,
         allowFullScreen: true,
@@ -142,13 +148,14 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
         showControlsOnInitialize: false,
         errorBuilder: (_, msg) => _ErrorWidget(
           message: msg,
-          onRetry: _resetPlayer,
+          onRetry: _retry,
         ),
       );
 
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
       _setVideoPlaying(true);
     } catch (e) {
+      if (stale()) return;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -158,27 +165,37 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
     }
   }
 
+  void _retry() {
+    _resetPlayer();
+    _startStream();
+  }
+
   void _resetPlayer() {
     _pendingPipExit = false;
     _resumedBeforePipExit = false;
+    if (pipOwner == 'live') pipOwner = null;
     _setVideoPlaying(false);
     pipModeNotifier.value = false;
-    _videoCtrl?.dispose();
+    // Chewie listens to the video controller, so dispose it first.
     _chewieCtrl?.dispose();
+    _videoCtrl?.dispose();
     setState(() {
       _videoCtrl = null;
       _chewieCtrl = null;
       _playerStarted = false;
+      _isLoading = false;
       _hasError = false;
       _inPipMode = false;
     });
   }
 
   Future<void> _enterPip() async {
+    pipOwner = 'live';
     try {
       await _pipChannel.invokeMethod('enterPip');
     } on PlatformException {
       // PiP not supported on this device/platform — ignore silently
+      pipOwner = null;
     }
   }
 
@@ -186,7 +203,8 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final tickersEnabled = TickerMode.of(context);
+    final tickersEnabled = TickerMode.valuesOf(context).enabled;
+    _tabVisible = tickersEnabled;
     if (tickersEnabled && !_playerStarted && !_isLoading) {
       _startStream();
     } else if (!tickersEnabled) {
@@ -295,7 +313,7 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.all(4),
               icon: const Icon(Icons.refresh_rounded, color: AppColors.gold, size: 22),
-              onPressed: _resetPlayer,
+              onPressed: _retry,
             ),
           ],
         ],
@@ -322,7 +340,7 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
       );
     }
     if (_hasError) {
-      return _ErrorWidget(message: 'تعذر الاتصال بالبث المباشر', onRetry: _resetPlayer);
+      return _ErrorWidget(message: 'تعذر الاتصال بالبث المباشر', onRetry: _retry);
     }
     // ── Audio-only mode ──
     if (_audioOnly && _videoCtrl != null) {

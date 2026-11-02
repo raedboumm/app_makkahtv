@@ -1,55 +1,55 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "../styles/live.css";
 
+const STREAM_URL = "https://media2.streambrothers.com:1936/8122/8122/playlist.m3u8";
+
 const LivePage = () => {
-  const handleStartLive = async (ev) => {
-    const wrapper = ev.currentTarget;
-    if (wrapper.dataset.started) return;
-    wrapper.dataset.started = "1";
+  const [started, setStarted] = useState(false);
+  const videoRef = useRef(null);
 
-    const src = "https://media2.streambrothers.com:1936/8122/8122/playlist.m3u8";
+  // The <video> is rendered by React (never via innerHTML, which would
+  // delete React-owned nodes), and the hls.js instance is torn down when
+  // leaving the page so the stream stops downloading.
+  useEffect(() => {
+    if (!started) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-    // create <video> and replace thumbnail
-    const video = document.createElement("video");
-    Object.assign(video, {
-      controls: true,
-      autoplay: true,
-      muted: true,
-      playsInline: true,
-      title: "Makkah Live Stream",
-    });
-    Object.assign(video.style, {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      display: "block",
-      background: "#000",
-    });
-
-    wrapper.innerHTML = "";
-    wrapper.appendChild(video);
-
-    try {
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari
-        video.src = src;
-        await video.play().catch(() => {});
-      } else {
+    let hls;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          // Safari
+          video.src = STREAM_URL;
+          await video.play().catch(() => {});
+          return;
+        }
         // Other browsers via hls.js (dynamic import)
         const { default: Hls } = await import("hls.js");
+        if (cancelled) return;
         if (Hls.isSupported()) {
-          const hls = new Hls();
-          hls.loadSource(src);
+          hls = new Hls();
+          hls.loadSource(STREAM_URL);
           hls.attachMedia(video);
         } else {
-          video.src = src;
+          video.src = STREAM_URL;
           await video.play().catch(() => {});
         }
+      } catch (e) {
+        /* no-op */
       }
-    } catch (e) {
-      /* no-op */
-    }
-  };
+    })();
+
+    return () => {
+      cancelled = true;
+      if (hls) hls.destroy();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [started]);
+
+  const handleStartLive = () => setStarted(true);
 
   return (
     <div className="live-page">
@@ -66,6 +66,25 @@ const LivePage = () => {
 
           {/* ✅ Video Embed (thumbnail + play button → live on click) */}
           <div className="video-wrapper">
+            {started ? (
+              <video
+                ref={videoRef}
+                controls
+                autoPlay
+                muted
+                playsInline
+                title="Makkah Live Stream"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                  background: "#000",
+                }}
+              />
+            ) : (
             <div
               className="absolute top-0 left-0 w-full h-full"
               role="button"
@@ -143,6 +162,7 @@ const LivePage = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* ✅ Description */}

@@ -303,8 +303,8 @@ class YouTubeService {
         } while (pageToken.isNotEmpty);
         await _writeList(_channelKey, all.map((v) => v.toJson()).toList());
       } catch (_) {
-        // Keep whatever already streamed in rather than wiping it out.
-        if (all.isNotEmpty) await _writeList(_channelKey, all.map((v) => v.toJson()).toList());
+        // Return what already streamed in, but don't cache it: a partial
+        // catalog would otherwise be served as the full one for 3 hours.
       } finally {
         _channelInFlight = null;
         _channelListeners.clear();

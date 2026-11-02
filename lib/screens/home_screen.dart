@@ -22,7 +22,6 @@ import 'news_detail_screen.dart';
 import 'program_detail_screen.dart';
 
 const _homePipChannel = MethodChannel('makkah.tv/pip');
-const _homePipEvents  = EventChannel('makkah.tv/pip_events');
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onWatchLive;
@@ -131,7 +130,7 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (Platform.isAndroid) {
-      _pipSub = _homePipEvents.receiveBroadcastStream().listen(_onPipEvent);
+      _pipSub = pipEvents.listen(_onPipEvent);
     }
     // Auto-start live stream when the home page opens
     WidgetsBinding.instance.addPostFrameCallback((_) => _startStream());
@@ -145,6 +144,28 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
     _videoCtrl?.dispose();
     _ytCtrl?.dispose();
     super.dispose();
+  }
+
+  // The home tab stays alive inside MainScaffold's IndexedStack, so pause
+  // its players while another tab is showing (otherwise the live tab and
+  // this one play two streams at once).
+  bool _tabVisible = true;
+  bool _resumeOnShow = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible == _tabVisible) return;
+    _tabVisible = visible;
+    if (!visible) {
+      _resumeOnShow = _ytCtrl == null && _videoCtrl?.value.isPlaying == true;
+      _videoCtrl?.pause();
+      _ytCtrl?.pause();
+    } else if (_resumeOnShow) {
+      _resumeOnShow = false;
+      _videoCtrl?.play();
+    }
   }
 
   @override
@@ -176,13 +197,13 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
     if (mounted) setState(() {});
   }
 
-  void _onPipEvent(dynamic event) {
-    if (!mounted) return;
-    final isInPip = event as bool;
+  void _onPipEvent(bool isInPip) {
+    if (!mounted || pipOwner != 'home') return;
     if (isInPip && _videoCtrl == null) return;
     pipModeNotifier.value = isInPip;
     setState(() => _inPipMode = isInPip);
     if (!isInPip) {
+      pipOwner = null;
       // PiP exited: set flag so lifecycle:resumed can resume playback.
       // If the app stays in background (PiP dismissed), the paused
       // lifecycle event will pause the video instead.
@@ -219,6 +240,7 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
 
   Future<void> _enterPip() async {
     if (_videoCtrl == null) return;
+    pipOwner = 'home';
     // Set fullscreen state NOW so Flutter rebuilds before Android captures the frame.
     pipModeNotifier.value = true;
     setState(() => _inPipMode = true);
@@ -228,6 +250,7 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
       await _homePipChannel.invokeMethod('enterPip');
     } catch (_) {
       // PiP not supported — revert
+      pipOwner = null;
       pipModeNotifier.value = false;
       if (mounted) setState(() => _inPipMode = false);
     }
@@ -242,22 +265,38 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
       // Always use a fresh controller for live HLS — preloaded buffers
       // start at a stale position and stall after ~1 second.
       LiveStreamPreloader.clear();
-      _videoCtrl = VideoPlayerController.networkUrl(
+      final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(StaticData.liveStream.streamUrl),
         httpHeaders: const {'User-Agent': 'MakkahTV/1.0 Flutter'},
         formatHint: VideoFormat.hls,
       );
-      await _videoCtrl!.initialize();
-      await _videoCtrl!.setLooping(false);
-      // Seek to the live edge before playing to avoid starting from stale buffer.
-      final dur = _videoCtrl!.value.duration;
-      if (dur > Duration.zero) await _videoCtrl!.seekTo(dur);
-      await _videoCtrl!.play();
-      if (mounted) setState(() => _isLoading = false);
-      homePipVideoNotifier.value = _videoCtrl;
+      _videoCtrl = ctrl;
+      // The stop button (_resetPlayer) can dispose/replace the controller
+      // while we're awaiting below — bail out quietly instead of erroring.
+      bool stale() => !mounted || _videoCtrl != ctrl;
+      try {
+        await ctrl.initialize();
+        if (stale()) return;
+        await ctrl.setLooping(false);
+        // Seek to the live edge before playing to avoid starting from stale buffer.
+        final dur = ctrl.value.duration;
+        if (dur > Duration.zero) await ctrl.seekTo(dur);
+        if (stale()) return;
+        if (_tabVisible) {
+          await ctrl.play();
+        } else {
+          _resumeOnShow = true;
+        }
+      } catch (_) {
+        if (stale()) return;
+        rethrow;
+      }
+      if (stale()) return;
+      setState(() => _isLoading = false);
+      homePipVideoNotifier.value = ctrl;
       _setVideoPlaying(true);
       // Add a listener: if the stream stalls/errors, show error state.
-      _videoCtrl!.addListener(_onVideoStatus);
+      ctrl.addListener(_onVideoStatus);
     } catch (_) {
       if (mounted) setState(() { _isLoading = false; _hasError = true; });
     }
@@ -273,9 +312,16 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
     }
   }
 
+  void _retry() {
+    _resetPlayer();
+    _startStream();
+  }
+
   void _resetPlayer() {
     _pendingPipExit = false;
     _stalled = false;
+    _resumeOnShow = false;
+    if (pipOwner == 'home') pipOwner = null;
     _setVideoPlaying(false);
     pipModeNotifier.value = false;
     homePipVideoNotifier.value = null;
@@ -383,7 +429,7 @@ class _HeroSectionState extends State<_HeroSection> with WidgetsBindingObserver 
       );
     }
     // Error
-    if (_hasError) return _PlayerError(onRetry: _resetPlayer);
+    if (_hasError) return _PlayerError(onRetry: _retry);
     // Playing — plain VideoPlayer + non-intercepting overlay buttons
     if (_videoCtrl != null && _videoCtrl!.value.isInitialized) {
       if (_inPipMode) return VideoPlayer(_videoCtrl!);

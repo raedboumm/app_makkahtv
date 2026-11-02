@@ -64,7 +64,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
+    # Only the images the app uses — the folder also holds design sources
+    # (website.zip ~34MB, .psd, logo .zip) that must not ship in the app.
+    - assets/images/makkah-logo.png
+    - assets/images/makkah-logo cicle.png
     - assets/episode/
     - assets/splash_animation.json
   #         style: italic

@@ -126,6 +126,39 @@ const ProgramDetail = () => {
         return () => (mounted = false);
     }, [program?.detailed_description]);
 
+    /* -------------------------------
+       ✅ Page Toast (Animated)
+       Must stay above the early "not found" return — hooks can't be
+       called conditionally.
+    --------------------------------*/
+    useEffect(() => {
+        const newPid = pid;
+        const prev = prevPidRef.current;
+
+        if (prev === null) {
+            prevPidRef.current = newPid;
+            return;
+        }
+        if (prev === newPid) return;
+
+        let toast = "تم الانتقال إلى برنامج جديد";
+
+        const prevIdx = programs.findIndex((p) => String(p.id) === String(prev));
+        const newIdx = programs.findIndex((p) => String(p.id) === String(newPid));
+
+        if (prevIdx !== -1 && newIdx !== -1) {
+            if (newIdx > prevIdx) toast = "برنامج لاحق →";
+            else if (newIdx < prevIdx) toast = "← برنامج سابق";
+        }
+
+        setPageToastText(toast);
+        setPageToastVisible(true);
+
+        const t = setTimeout(() => setPageToastVisible(false), 1200);
+        prevPidRef.current = newPid;
+        return () => clearTimeout(t);
+    }, [location.pathname]);
+
     if (!program) {
         return (
             <main className="article-detail" dir="rtl">
@@ -186,40 +219,8 @@ const ProgramDetail = () => {
     };
 
     /* -------------------------------
-       ✅ Page Toast (Animated)
+       ✅ RENDER
     --------------------------------*/
-    useEffect(() => {
-        const newPid = pid;
-        const prev = prevPidRef.current;
-
-        try {
-        } catch {
-            // Empty catch block
-        }
-
-        if (prev === null) {
-            prevPidRef.current = newPid;
-            return;
-        }
-        if (prev === newPid) return;
-
-        let toast = "تم الانتقال إلى برنامج جديد";
-
-        const prevIdx = programs.findIndex((p) => String(p.id) === String(prev));
-        const newIdx = programs.findIndex((p) => String(p.id) === String(newPid));
-
-        if (prevIdx !== -1 && newIdx !== -1) {
-            if (newIdx > prevIdx) toast = "برنامج لاحق →";
-            else if (newIdx < prevIdx) toast = "← برنامج سابق";
-        }
-
-        setPageToastText(toast);
-        setPageToastVisible(true);
-
-        const t = setTimeout(() => setPageToastVisible(false), 1200);
-        prevPidRef.current = newPid;
-        return () => clearTimeout(t);
-    }, [location.pathname]);
 
     /* -------------------------------
        ✅ RENDER

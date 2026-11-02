@@ -1,8 +1,19 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 /// Global flag so MainScaffold can hide the bottom bar while any player is in PiP mode.
 final pipModeNotifier = ValueNotifier<bool>(false);
+
+/// The single subscription to the native PiP events. An EventChannel only
+/// supports one listener, so every screen must share this stream instead of
+/// calling receiveBroadcastStream() itself (the last caller would steal it).
+final Stream<bool> pipEvents = const EventChannel('makkah.tv/pip_events')
+    .receiveBroadcastStream()
+    .map((e) => e as bool);
+
+/// Which player asked for PiP ('home' / 'live'), so only that one reacts.
+String? pipOwner;
 
 /// The active VideoPlayerController from the home page inline player.
 /// MainScaffold uses this to render a fullscreen video-only layer during PiP.

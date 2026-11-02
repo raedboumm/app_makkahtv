@@ -52,6 +52,7 @@ const ProgramsLibrary = () => {
   const [openPlaylist, setOpenPlaylist] = useState(null);
   const [playlistVideos, setPlaylistVideos] = useState(null);
   const [playlistVisibleCount, setPlaylistVisibleCount] = useState(PAGE_SIZE);
+  const openPlaylistIdRef = useRef(null);
 
   // Filter row scrolls sideways on small screens; arrows hint there's more.
   const filtersRef = useRef(null);
@@ -151,6 +152,7 @@ const ProgramsLibrary = () => {
     if (key === sortKey) return;
     setSortKey(key);
     setVisibleCount(PAGE_SIZE);
+    openPlaylistIdRef.current = null;
     setOpenPlaylist(null);
     setPlaylistVideos(null);
   };
@@ -165,10 +167,15 @@ const ProgramsLibrary = () => {
     setOpenPlaylist(playlist);
     setPlaylistVideos(null);
     setPlaylistVisibleCount(PAGE_SIZE);
-    fetchPlaylistVideos(playlist.id).then(setPlaylistVideos);
+    openPlaylistIdRef.current = playlist.id;
+    fetchPlaylistVideos(playlist.id).then((data) => {
+      // Ignore a late answer for a playlist the user already left.
+      if (openPlaylistIdRef.current === playlist.id) setPlaylistVideos(data);
+    });
   };
 
   const handleBackToPlaylists = () => {
+    openPlaylistIdRef.current = null;
     setOpenPlaylist(null);
     setPlaylistVideos(null);
   };

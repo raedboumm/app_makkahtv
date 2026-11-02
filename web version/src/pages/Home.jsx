@@ -7,7 +7,12 @@ import "../styles/home.css";
 import ChannelInfo from "../components/ChannelInfo";
 import { extractYouTubeId, fetchViewCounts } from "../services/youtube";
 import { LiveStreamSlot } from "../context/LiveStream";
- 
+
+// Declared once at module level: creating React.lazy inside render makes a
+// brand-new component type on every render, remounting these sections.
+const ProgramLive = React.lazy(() => import("../components/ProgramLive.jsx"));
+const ProgramEpisodes = React.lazy(() => import("../components/ProgramEpisodes.jsx"));
+
 import poster1 from "../assets/episode/post1.png";
 import poster2 from "../assets/episode/poste2.png";
 import poster3 from "../assets/episode/poste3.png";
@@ -464,10 +469,9 @@ const Home = () => {
           }
         ];
 
-        const C = React.lazy(() => import('../components/ProgramLive.jsx'));
         return (
           <React.Suspense fallback={null}>
-            <C title="البث اليومي" programs={livePrograms} />
+            <ProgramLive title="البث اليومي" programs={livePrograms} />
           </React.Suspense>
         );
       })()}
@@ -584,10 +588,9 @@ const Home = () => {
           },
         ];
 
-        const C = React.lazy(() => import('../components/ProgramEpisodes.jsx'));
         return (
           <React.Suspense fallback={null}>
-            <C title="لقاءات مباشرة" episodes={episodes} />
+            <ProgramEpisodes title="لقاءات مباشرة" episodes={episodes} />
           </React.Suspense>
         );
       })()}

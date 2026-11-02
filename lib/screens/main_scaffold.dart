@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../app_theme.dart';
 import '../pip_state.dart';
@@ -35,12 +36,16 @@ class _MainScaffoldState extends State<MainScaffold> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          final canPop =
-              _navKeys[_currentIndex].currentState?.canPop() ?? false;
-          if (canPop) {
-            _navKeys[_currentIndex].currentState?.pop();
-          }
+        if (didPop) return;
+        final nav = _navKeys[_currentIndex].currentState;
+        if (nav?.canPop() ?? false) {
+          nav!.pop();
+        } else if (_currentIndex != 0) {
+          // At the root of another tab → go back to the home tab.
+          setState(() => _currentIndex = 0);
+        } else {
+          // At the root of the home tab → leave the app.
+          SystemNavigator.pop();
         }
       },
       child: Scaffold(
