@@ -73,11 +73,13 @@ jobs:
 
       - name: Set Release signing to Apple Distribution
         run: |
-          sed -i '' '/97C147071CF9000F007C117D.*Release/,/name = Release/ {
-            /DEVELOPMENT_TEAM/a\
-\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\
-\t\t\t\tCODE_SIGN_STYLE = Manual;
-          }' ios/Runner.xcodeproj/project.pbxproj
+          perl -i -pe '
+            $r = 1 if /97C147071CF9000F007C117D.*Release/;
+            if ($r && /DEVELOPMENT_TEAM/) {
+              $_ .= "\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n";
+              $r = 0;
+            }
+          ' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Archive and export with API key
         run: |
