@@ -71,17 +71,6 @@ jobs:
       - name: Build iOS (no codesign)
         run: flutter build ipa --dart-define-from-file=env.json --no-codesign
 
-      - name: Set Release signing for distribution
-        run: |
-          perl -i -pe '
-            $r = 1 if /97C147071CF9000F007C117D.*Release/;
-            if ($r && /DEVELOPMENT_TEAM/) {
-              $_ .= "\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";\n";
-              $_ .= "\t\t\t\tCODE_SIGN_STYLE = Manual;\n";
-              $r = 0;
-            }
-          ' ios/Runner.xcodeproj/project.pbxproj
-
       - name: Archive and export with API key
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace \
@@ -93,6 +82,8 @@ jobs:
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8 \
             -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
+            CODE_SIGN_STYLE="Automatic" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             archive
 
           xcodebuild -exportArchive \
