@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION_ERROR")
+
 import java.util.Properties
 import java.io.FileInputStream
 
