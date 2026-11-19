@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: "https://makkahtv.live",
   plugins: [react()],
+  // In development the PHP back office runs on php -S :4000 (npm run dev
+  // starts both). On the real server the PHP files are simply part of dist/.
+  server: {
+    proxy: {
+      "/api/index.php": "http://localhost:4000",
+      "/admin": "http://localhost:4000",
+    },
+  },
   build: {
     // Never emit source maps in production — this is what keeps the original
     // (un-minified) source from being reconstructed inside the browser DevTools.

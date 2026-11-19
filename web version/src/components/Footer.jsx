@@ -60,16 +60,31 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="/programs" className="footer__link">
+                {/* Same target as the header item: the live section on the homepage */}
+                <a
+                  href="/"
+                  className="footer__link"
+                  onClick={() =>
+                    sessionStorage.setItem(
+                      "makkah_pending_scroll",
+                      JSON.stringify({ id: "live-hero", live: true })
+                    )
+                  }
+                >
                   <i className="fa-solid fa-chevron-left footer__chev"></i>
-                  برامجنا
+                  البث المباشر
                 </a>
               </li>
               <li>
-                <a href="/daily" className="footer__link">
+                <a href="/library" className="footer__link">
                   <i className="fa-solid fa-chevron-left footer__chev"></i>
-                
-البث اليومي
+                  مكتبة البرامج
+                </a>
+              </li>
+              <li>
+                <a href="/series" className="footer__link">
+                  <i className="fa-solid fa-chevron-left footer__chev"></i>
+                  سلاسل البرامج
                 </a>
               </li>
             </ul>
@@ -108,7 +123,7 @@ const Footer = () => {
         {/* Bottom line */}
  
         <div className="footer__bottom">
-          <p>© {currentYear} قناة مكة الفضائية. جميع الحقوق محفوظة.</p>
+          <p>© {currentYear} قناة مكة . جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>

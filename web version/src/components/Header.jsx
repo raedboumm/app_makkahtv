@@ -2,10 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../styles/header.css";
 import logo from "../assets/logos.png"; // keep this path as you have it
+import ThemeToggle from "./ThemeToggle";
+import useTheme from "../hooks/useTheme";
+import { scrollToSection } from "../services/scrollToSection";
 
 const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -15,12 +19,7 @@ const Header = () => {
   const goToSection = (id, live) => {
     if (location.pathname === "/") {
       if (live) window.dispatchEvent(new Event("makkah:go-live"));
-      const el = document.getElementById(id);
-      if (el) {
-        const offset = 100;
-        const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
-        window.scrollTo({ top: elementPosition - offset, behavior: "smooth" });
-      }
+      scrollToSection(id);
       return;
     }
 
@@ -42,6 +41,7 @@ const Header = () => {
        { name: "الرئيسية", page: "/", icon: "fa-home" },
    { name: "البث المباشر", page: "live-hero", live: true },
 { name: "مكتبة البرامج", page: "/library", icon: "fa-film" },
+{ name: "سلاسل البرامج", page: "/series", icon: "fa-layer-group" },
   /*  { name: "البث المباشر", page: "/live", icon: "fa-broadcast-tower" },*/
  /*   { name: "برامجنا", page: "/programs", icon: "fa-tv" },*/
  /*   { name: "البث اليومي", page: "/daily", icon: "fa-video" },*/
@@ -142,6 +142,7 @@ const Header = () => {
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="menu-btn">
               <i className="fas fa-bars"></i>
             </button>
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
           </div>
         </div>
 
@@ -186,6 +187,7 @@ const Header = () => {
         </button>
       )
     )}
+    <ThemeToggle isDark={isDark} onToggle={toggleTheme} row />
   </div>
 )}
       </header>

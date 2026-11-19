@@ -5,7 +5,7 @@
     gap: 10px;
     font-size: 24px;
     font-weight: 700;
-    color: #222;
+    color: var(--ci-text);
     margin-bottom: 24px;
 }
 

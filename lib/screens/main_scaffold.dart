@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../app_theme.dart';
 import '../pip_state.dart';
+import '../widgets/main_drawer.dart';
 import 'home_screen.dart';
-import 'live_tab.dart';
+import 'program_series_screen.dart';
 import 'programs_library_screen.dart';
 
 class MainScaffold extends StatefulWidget {
@@ -15,11 +16,16 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  // Tabs = the web's menu: الرئيسية / مكتبة البرامج / سلاسل البرامج.
+  // (Live plays on the home page, so there's no separate live tab.)
   int _currentIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _openMenu() => _scaffoldKey.currentState?.openDrawer();
 
   // One navigator key per tab — keeps bottom bar visible on every push
   final List<GlobalKey<NavigatorState>> _navKeys = List.generate(
-    3, (_) => GlobalKey<NavigatorState>(),
+    appMenuItems.length, (_) => GlobalKey<NavigatorState>(),
   );
 
   void _setIndex(int index) {
@@ -37,6 +43,18 @@ class _MainScaffoldState extends State<MainScaffold> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
+        // Back while the side menu is open → close it.
+        final scaffold = _scaffoldKey.currentState;
+        if (scaffold?.isDrawerOpen ?? false) {
+          scaffold!.closeDrawer();
+          return;
+        }
+        // Back while a video is fullscreen → leave fullscreen first.
+        final fs = fullscreenPlayerNotifier.value;
+        if (fs != null) {
+          fs.exit();
+          return;
+        }
         final nav = _navKeys[_currentIndex].currentState;
         if (nav?.canPop() ?? false) {
           nav!.pop();
@@ -49,6 +67,10 @@ class _MainScaffoldState extends State<MainScaffold> {
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
+        // Opened with the ☰ toggle (an edge swipe would fight the players).
+        drawerEnableOpenDragGesture: false,
+        drawer: MainDrawer(currentIndex: _currentIndex, onNavigate: _setIndex),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         extendBody: true,
@@ -60,12 +82,18 @@ class _MainScaffoldState extends State<MainScaffold> {
                 _NestedNav(
                   navKey: _navKeys[0],
                   child: HomeScreen(
-                    onWatchLive: () => _setIndex(1),
-                    onGoToPrograms: () => _setIndex(2),
+                    onOpenMenu: _openMenu,
+                    onGoToLibrary: () => _setIndex(1),
                   ),
                 ),
-                _NestedNav(navKey: _navKeys[1], child: const LiveTab()),
-                _NestedNav(navKey: _navKeys[2], child: const ProgramsLibraryScreen()),
+                _NestedNav(
+                  navKey: _navKeys[1],
+                  child: ProgramsLibraryScreen(onOpenMenu: _openMenu),
+                ),
+                _NestedNav(
+                  navKey: _navKeys[2],
+                  child: ProgramSeriesScreen(onOpenMenu: _openMenu),
+                ),
               ],
             ),
             // Full-screen cover for home-page PiP — raw video-only layer.
@@ -87,12 +115,28 @@ class _MainScaffoldState extends State<MainScaffold> {
                 );
               },
             ),
+            // App-wide fullscreen layer: any player that goes fullscreen is
+            // drawn here, above every tab, with the bottom bar hidden.
+            ValueListenableBuilder<FullscreenPlayer?>(
+              valueListenable: fullscreenPlayerNotifier,
+              builder: (context, fs, child) {
+                if (fs == null) return const SizedBox.shrink();
+                return Positioned.fill(
+                  child: Material(
+                    color: Colors.black,
+                    child: SizedBox.expand(child: fs.child),
+                  ),
+                );
+              },
+            ),
           ],
         ),
-        bottomNavigationBar: ValueListenableBuilder<bool>(
-          valueListenable: pipModeNotifier,
-          builder: (context, inPip, child) =>
-              inPip ? const SizedBox.shrink() : _buildBottomNav(),
+        bottomNavigationBar: ListenableBuilder(
+          listenable: Listenable.merge([pipModeNotifier, fullscreenPlayerNotifier]),
+          builder: (context, child) =>
+              (pipModeNotifier.value || fullscreenPlayerNotifier.value != null)
+                  ? const SizedBox.shrink()
+                  : _buildBottomNav(),
         ),
       ),
     );
@@ -115,28 +159,8 @@ class _MainScaffoldState extends State<MainScaffold> {
         currentIndex: _currentIndex,
         onTap: _setIndex,
         items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'الرئيسية',
-          ),
-          BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.live_tv_rounded),
-                Positioned(
-                  top: -2,
-                  left: -2,
-                  child: _LiveDot(),
-                ),
-              ],
-            ),
-            label: 'البث المباشر',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.video_library_rounded),
-            label: 'مكتبة البرامج',
-          ),
+          for (final item in appMenuItems)
+            BottomNavigationBarItem(icon: Icon(item.icon), label: item.label),
         ],
       ),
     );
@@ -157,48 +181,6 @@ class _NestedNav extends StatelessWidget {
       onGenerateRoute: (settings) => MaterialPageRoute(
         settings: settings,
         builder: (_) => child,
-      ),
-    );
-  }
-}
-
-class _LiveDot extends StatefulWidget {
-  @override
-  State<_LiveDot> createState() => _LiveDotState();
-}
-
-class _LiveDotState extends State<_LiveDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.2, end: 1.0).animate(_ctrl);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: Container(
-        width: 7,
-        height: 7,
-        decoration: const BoxDecoration(
-          color: AppColors.livePulse,
-          shape: BoxShape.circle,
-        ),
       ),
     );
   }

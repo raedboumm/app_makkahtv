@@ -24,6 +24,12 @@
     padding: 2rem 0
 }
 
+/* Homepage only (the Hajj page shares .hero-gradient and has white text on
+   it). Same gold and light sweep as the .channelInfo-box frequency card. */
+#live-hero {
+    background:  #f3d4a3;
+}
+
 .hero-grid {
     grid-template-columns: 70% 1fr;
     gap: 1.5rem;
@@ -292,4 +298,42 @@ section.program-episodes .episode-card{
     padding: 0;border-radius: 0;
 }
 section.program-episodes .episode-card{margin: 0;}
+}
+/* Homepage previews of مكتبة البرامج / سلاسل البرامج */
+.home-section {
+    min-width: 0
+}
+
+.home-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem
+}
+
+.home-section-header .section-title {
+    margin-bottom: 0
+}
+
+.home-section-more {
+    color: #222;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none
+}
+
+.home-section-more:hover {
+    color: var(--makkah-gold)
+}
+
+.home-section-filters {
+    margin-bottom: 1.25rem
+}
+
+@media(min-width:901px) {
+    .home-section .videos-grid {
+        grid-template-columns: repeat(3, 1fr) !important
+    }
 }

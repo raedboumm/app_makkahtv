@@ -1,13 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl" translate="no">
 
 
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- The site is Arabic: stop Chrome offering an Arabic->Arabic "translation" that garbles the text -->
+  <meta name="google" content="notranslate" />
+  <meta http-equiv="content-language" content="ar" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>قناة مكة | Makkah TV</title>
+  <!-- Applies the saved day/night theme before the first paint -->
+  <script>
+    try {
+      if (localStorage.getItem("makkah_theme") === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      }
+    } catch (e) {}
+  </script>
   <link rel="icon" type="image/x-icon" href="/makkahTv.ico">
   <!-- Preload hero background image -->
   <link rel="preload" as="image" href="/src/assets/background.png">

@@ -10,6 +10,7 @@
 
 /* ✅ Title */
 .page-title {
+  color: var(--ci-text);
   font-size: 28px;
   margin-bottom: 24px;
   display: flex;

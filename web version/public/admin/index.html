@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>لوحة التحكم | قناة مكة</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <!-- ================= Login ================= -->
+  <section id="login-view" class="login" hidden>
+    <form id="login-form" class="login-card" novalidate>
+      <img class="login-logo" src="logo.png" alt="قناة مكة" />
+      <div class="login-title">
+        <h1>لوحة التحكم</h1>
+        <p>سجّل الدخول بالبريد الإلكتروني وكلمة المرور</p>
+      </div>
+      <label class="field">
+        <span>البريد الإلكتروني</span>
+        <input type="email" name="email" class="ltr" autocomplete="username" placeholder="name@example.com" required autofocus />
+      </label>
+      <label class="field">
+        <span>كلمة المرور</span>
+        <div class="pass-wrap">
+          <input type="password" name="password" class="ltr" autocomplete="current-password" required />
+          <button type="button" class="pass-toggle" id="pass-toggle" aria-label="إظهار كلمة المرور">إظهار</button>
+        </div>
+      </label>
+      <p id="login-error" class="alert" hidden></p>
+      <button class="btn btn-primary btn-block btn-lg" type="submit" id="login-btn">تسجيل الدخول</button>
+    </form>
+    <p class="login-foot">© قناة مكة</p>
+  </section>
+
+  <!-- ================= App ================= -->
+  <div id="app-view" class="layout" hidden>
+    <aside class="sidebar">
+      <div class="side-logo">
+        <img src="logo.png" alt="قناة مكة" />
+        <span>لوحة التحكم</span>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-tab="live">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></svg>
+          <span>البث المباشر</span>
+        </button>
+        <button class="nav-item" data-tab="youtube">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
+          <span>واجهات البرامج</span>
+        </button>
+        <button class="nav-item" data-tab="messages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6 8.5-6"/></svg>
+          <span>رسائل الموقع</span>
+          <span id="unread-badge" class="badge" hidden>0</span>
+        </button>
+      </nav>
+
+      <div class="side-user">
+        <div class="avatar" id="user-avatar">م</div>
+        <div class="user-info">
+          <span class="user-label">مسجّل الدخول</span>
+          <span class="user-email" id="user-email"></span>
+        </div>
+        <button id="logout" class="icon-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M9 8l-4 4 4 4M5 12h11"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ===== Part 1: Live ===== -->
+      <section class="tab" data-tab="live">
+        <header class="page-head">
+          <div>
+            <h2>البث المباشر</h2>
+            <p>رابط البث الذي يظهر في الصفحة الرئيسية وصفحة البث المباشر.</p>
+          </div>
+        </header>
+        <div class="card">
+          <div class="card-head">
+            <h3>رابط البث</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>الاسم</th><th>رابط البث</th><th>الحالة</th><th>آخر تحديث</th><th class="actions-col"></th></tr>
+              </thead>
+              <tbody id="live-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Part 2: YouTube APIs ===== -->
+      <section class="tab" data-tab="youtube" hidden>
+        <header class="page-head">
+          <div>
+            <h2>واجهات البرامج</h2>
+            <p>إعدادات YouTube API لكل قسم بشكل منفصل.</p>
+          </div>
+        </header>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>مكتبة البرامج</h3>
+            <span class="card-sub">جميع فيديوهات القناة</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>الاسم</th><th>مفتاح API</th><th>معرّف القائمة (Playlist ID)</th><th>الحالة</th><th>آخر تحديث</th><th class="actions-col"></th></tr>
+              </thead>
+              <tbody id="library-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>قوائم التشغيل</h3>
+            <span class="card-sub">سلاسل وقوائم تشغيل القناة</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>الاسم</th><th>مفتاح API</th><th>معرّف القناة (Channel ID)</th><th>الحالة</th><th>آخر تحديث</th><th class="actions-col"></th></tr>
+              </thead>
+              <tbody id="playlists-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Part 3: Messages ===== -->
+      <section class="tab" data-tab="messages" hidden>
+        <header class="page-head">
+          <div>
+            <h2>رسائل الموقع</h2>
+            <p>الرسائل الواردة من نموذج «تواصل معنا».</p>
+          </div>
+        </header>
+
+        <div class="stats">
+          <div class="stat"><span class="stat-num" id="stat-total">0</span><span class="stat-label">إجمالي الرسائل</span></div>
+          <div class="stat"><span class="stat-num accent" id="stat-unread">0</span><span class="stat-label">غير مقروءة</span></div>
+          <div class="stat"><span class="stat-num" id="stat-today">0</span><span class="stat-label">اليوم</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head toolbar">
+            <input id="msg-search" type="search" placeholder="بحث بالاسم أو البريد أو الموضوع…" />
+            <select id="msg-filter">
+              <option value="all">كل الرسائل</option>
+              <option value="unread">غير مقروءة</option>
+              <option value="read">مقروءة</option>
+            </select>
+            <button id="msg-refresh" class="btn">تحديث</button>
+          </div>
+          <div class="table-wrap">
+            <table class="messages">
+              <thead>
+                <tr><th>التاريخ</th><th>الاسم</th><th>البريد الإلكتروني</th><th>الهاتف</th><th>الموضوع</th><th>الرسالة</th><th>الحالة</th><th class="actions-col"></th></tr>
+              </thead>
+              <tbody id="messages-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Edit dialog -->
+  <dialog id="edit-dialog">
+    <form id="edit-form" method="dialog">
+      <div class="dialog-head">
+        <h3 id="edit-title">تعديل</h3>
+        <button type="button" class="icon-btn" data-close aria-label="إغلاق">✕</button>
+      </div>
+      <div id="edit-fields"></div>
+      <label class="switch">
+        <input type="checkbox" name="active" />
+        <span class="track"></span>
+        <span>مفعّل</span>
+      </label>
+      <p id="edit-error" class="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary" value="save">حفظ التغييرات</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Message dialog -->
+  <dialog id="msg-dialog">
+    <div class="msg-view">
+      <div class="dialog-head">
+        <h3 id="msg-subject"></h3>
+        <button type="button" class="icon-btn" data-close aria-label="إغلاق">✕</button>
+      </div>
+      <dl class="meta">
+        <dt>الاسم</dt><dd id="msg-name"></dd>
+        <dt>البريد</dt><dd id="msg-email" class="ltr-text"></dd>
+        <dt>الهاتف</dt><dd id="msg-phone" class="ltr-text"></dd>
+        <dt>التاريخ</dt><dd id="msg-date"></dd>
+      </dl>
+      <p id="msg-text" class="msg-text"></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>إغلاق</button>
+        <a id="msg-reply" class="btn btn-primary" href="#">الرد عبر البريد</a>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

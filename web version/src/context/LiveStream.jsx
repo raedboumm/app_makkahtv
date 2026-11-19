@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getSiteConfig } from "../services/siteConfig";
 
 const LiveStreamContext = createContext(null);
 
-const STREAM_URL = "https://media2.streambrothers.com:1936/8122/8122/playlist.m3u8";
 
 // Keeps one <video> + HLS connection alive for the whole app session,
 // instead of letting it get destroyed and reconnected from scratch every
@@ -20,13 +20,20 @@ export const LiveStreamProvider = ({ children }) => {
   const [videoEl, setVideoEl] = useState(null);
   const [hiddenHost, setHiddenHost] = useState(null);
   const [activeHost, setActiveHost] = useState(null);
+  const hlsRef = useRef(null);
 
   useEffect(() => {
     const video = videoEl;
     if (!video) return;
 
     let hls;
+    let cancelled = false;
     const start = async () => {
+      // Stream URL is managed from the back office (falls back to the default).
+      const { live } = await getSiteConfig();
+      const STREAM_URL = live.streamUrl;
+      if (cancelled) return;
+
       video.muted = true;
       video.autoplay = true;
       video.playsInline = true;
@@ -41,6 +48,7 @@ export const LiveStreamProvider = ({ children }) => {
       }
 
       const Hls = (await import("hls.js")).default;
+      if (cancelled) return;
       if (Hls.isSupported()) {
         hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         hls.loadSource(STREAM_URL);
@@ -58,10 +66,63 @@ export const LiveStreamProvider = ({ children }) => {
       }
     };
 
-    start();
+    start().then(() => {
+      if (!cancelled) hlsRef.current = hls || null;
+    });
 
     return () => {
+      cancelled = true;
+      hlsRef.current = null;
       if (hls) hls.destroy();
+    };
+  }, [videoEl]);
+
+  // Only one thing should make sound at a time: while any other player is
+  // on the page (a YouTube/other iframe in a modal or the home hero, or
+  // another <video> such as the /live page), pause the live stream and stop
+  // downloading it. When the last one closes, resume at the live edge.
+  useEffect(() => {
+    const live = videoEl;
+    if (!live) return;
+
+    let pausedByUs = false;
+
+    const otherPlayerOpen = () => {
+      if (document.querySelector("iframe:not([data-live-ignore])")) return true;
+      return Array.from(document.querySelectorAll("video")).some((v) => v !== live);
+    };
+
+    const sync = () => {
+      const hls = hlsRef.current;
+      if (otherPlayerOpen()) {
+        if (!pausedByUs && !live.paused) {
+          pausedByUs = true;
+          live.pause();
+          if (hls) hls.stopLoad();
+        }
+      } else if (pausedByUs) {
+        pausedByUs = false;
+        if (hls) {
+          hls.startLoad(-1);
+          if (Number.isFinite(hls.liveSyncPosition)) live.currentTime = hls.liveSyncPosition;
+        }
+        live.play().catch(() => {});
+      }
+    };
+
+    // Also catch a second <video> that starts playing without being newly added.
+    const onPlay = (e) => {
+      if (e.target !== live && e.target instanceof HTMLMediaElement) sync();
+    };
+
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("play", onPlay, true);
+    sync();
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("play", onPlay, true);
     };
   }, [videoEl]);
 

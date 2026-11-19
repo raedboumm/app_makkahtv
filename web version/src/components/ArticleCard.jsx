@@ -93,7 +93,7 @@ const [playerType, setPlayerType] = React.useState(null);
       </h3>
        <div className="trending-list">
                 {mostViewed.length === 0 && (
-                    <p className="text-gray-500 text-sm">لا توجد بيانات الآن...</p>
+                    <p className="text-gray-500 text-sm">جاري التحميل...</p>
                 )}
         
                 {mostViewed.map((item, i) => {

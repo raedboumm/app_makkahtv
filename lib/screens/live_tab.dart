@@ -23,6 +23,8 @@ class LiveTab extends StatefulWidget {
 }
 
 class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
+  static const _maxAutoRetries = 4;
+
   VideoPlayerController? _videoCtrl;
   ChewieController? _chewieCtrl;
   bool _isLoading = false;
@@ -34,7 +36,15 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
   bool _pendingPipExit = false;
   bool _resumedBeforePipExit = false;
   bool _tabVisible = false;
+  bool _inBackground = false;
+  int _retries = 0;
+  Timer? _retryTimer;
   final _freqKey = GlobalKey();
+  // True once the user paused the stream: playback is now behind the live edge.
+  bool _behindLive = false;
+  bool _hasPlayed = false;
+
+  bool get _canPlay => mounted && _tabVisible && !_inBackground;
 
   @override
   void initState() {
@@ -50,7 +60,9 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pipSub?.cancel();
+    _retryTimer?.cancel();
     _setVideoPlaying(false);
+    _videoCtrl?.removeListener(_onVideoStatus);
     _chewieCtrl?.dispose();
     _videoCtrl?.dispose();
     super.dispose();
@@ -74,7 +86,12 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
         // resumed hasn't fired yet — could be expand or dismiss, start timer
         _pendingPipExit = true;
         Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted && _pendingPipExit) _resetPlayer();
+          if (mounted && _pendingPipExit) {
+            // PiP was dismissed (app stays in background): free the stream;
+            // it restarts fresh when the user comes back.
+            _inBackground = true;
+            _resetPlayer();
+          }
         });
       }
     }
@@ -82,7 +99,9 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted) return;
     if (state == AppLifecycleState.resumed) {
+      _inBackground = false;
       if (_pendingPipExit) {
         // Case A: onPipEvent(false) fired first, then resumed — user expanded
         _pendingPipExit = false;
@@ -92,6 +111,9 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
       } else if (_inPipMode) {
         // Case B: resumed fired first, onPipEvent(false) coming shortly
         _resumedBeforePipExit = true;
+      } else if (_tabVisible && !_playerStarted) {
+        // Back from background → fresh live stream (the old one was released).
+        _startStream(manual: true);
       }
     }
     if (state == AppLifecycleState.paused ||
@@ -103,7 +125,10 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
           }
         });
       } else if (!_inPipMode && !_pendingPipExit && !_resumedBeforePipExit) {
-        _videoCtrl?.pause();
+        // A paused live HLS stream goes stale — release it instead and
+        // start a fresh one when the app comes back.
+        _inBackground = true;
+        if (_playerStarted) _resetPlayer();
       }
     }
   }
@@ -116,30 +141,38 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  Future<void> _startStream() async {
+  Future<void> _startStream({bool manual = false}) async {
+    if (!mounted) return;
+    if (manual) _retries = 0;
+    _retryTimer?.cancel();
+    _disposeControllers();
     setState(() {
       _isLoading = true;
       _hasError = false;
       _playerStarted = true;
+      _behindLive = false;
     });
+    _hasPlayed = false;
 
     final stream = StaticData.liveStream;
 
     final ctrl = VideoPlayerController.networkUrl(
       Uri.parse(stream.streamUrl),
       httpHeaders: const {'User-Agent': 'MakkahTV/1.0 Flutter'},
+      formatHint: VideoFormat.hls,
     );
     _videoCtrl = ctrl;
-    // Refresh (_resetPlayer) may dispose/replace the controller mid-init.
+    // Refresh / tab switch may dispose/replace the controller mid-init.
     bool stale() => !mounted || _videoCtrl != ctrl;
     try {
-      await ctrl.initialize();
+      await ctrl.initialize().timeout(const Duration(seconds: 20));
       if (stale()) return;
+      ctrl.addListener(_onVideoStatus);
 
       _chewieCtrl = ChewieController(
         videoPlayerController: ctrl,
         // Don't start playing if the user switched tabs while loading.
-        autoPlay: _tabVisible,
+        autoPlay: _canPlay,
         deviceOrientationsAfterFullScreen: const [DeviceOrientation.portraitUp],
         looping: false,
         isLive: true,
@@ -152,41 +185,107 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
         ),
       );
 
+      _retries = 0;
       setState(() => _isLoading = false);
       _setVideoPlaying(true);
     } catch (e) {
       if (stale()) return;
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-        });
-      }
+      _scheduleRetry();
     }
   }
 
-  void _retry() {
-    _resetPlayer();
-    _startStream();
+  /// Network hiccups (common right after launch) retry automatically with
+  /// backoff before the error screen is shown.
+  void _scheduleRetry() {
+    if (!mounted) return;
+    _disposeControllers();
+    if (_retries >= _maxAutoRetries) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+      return;
+    }
+    _retries++;
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _playerStarted = true;
+    });
+    _retryTimer?.cancel();
+    _retryTimer = Timer(Duration(seconds: 1 << (_retries - 1)), () {
+      if (_canPlay) _startStream();
+    });
   }
 
-  void _resetPlayer() {
+  void _onVideoStatus() {
+    final c = _videoCtrl;
+    if (!mounted || c == null) return;
+    if (!c.value.hasError) {
+      // A pause makes the stream resume from where it stopped, i.e. behind
+      // the live edge — remember it so we can offer "back to live".
+      if (c.value.isPlaying) {
+        _hasPlayed = true;
+      } else if (_hasPlayed && !_behindLive && c.value.isInitialized) {
+        setState(() => _behindLive = true);
+      }
+      return;
+    }
+    c.removeListener(_onVideoStatus);
+    // Not inside the controller's own notifyListeners (it gets disposed).
+    scheduleMicrotask(_scheduleRetry);
+  }
+
+  void _disposeControllers() {
+    final chewie = _chewieCtrl;
+    final video = _videoCtrl;
+    _chewieCtrl = null;
+    _videoCtrl = null;
+    if (chewie == null && video == null) return;
+    video?.removeListener(_onVideoStatus);
+    _setVideoPlaying(false);
+    final wasFullScreen = chewie?.isFullScreen == true;
+    if (wasFullScreen) {
+      // Close Chewie's fullscreen route first, dispose once it's gone.
+      chewie!.exitFullScreen();
+      video?.pause();
+      Future.delayed(const Duration(milliseconds: 700), () {
+        chewie.dispose();
+        video?.dispose();
+      });
+    } else {
+      // Chewie listens to the video controller, so dispose it first.
+      chewie?.dispose();
+      video?.dispose();
+    }
+  }
+
+  void _retry() => _startStream(manual: true);
+
+  /// Jumps back to the latest second of the broadcast. A fresh HLS session
+  /// always starts at the live edge, so restart the stream.
+  void _goLive() => _startStream(manual: true);
+
+  /// Releases the stream without setState (safe from didChangeDependencies).
+  void _releasePlayer() {
+    _retryTimer?.cancel();
     _pendingPipExit = false;
     _resumedBeforePipExit = false;
     if (pipOwner == 'live') pipOwner = null;
-    _setVideoPlaying(false);
-    pipModeNotifier.value = false;
-    // Chewie listens to the video controller, so dispose it first.
-    _chewieCtrl?.dispose();
-    _videoCtrl?.dispose();
-    setState(() {
-      _videoCtrl = null;
-      _chewieCtrl = null;
-      _playerStarted = false;
-      _isLoading = false;
-      _hasError = false;
-      _inPipMode = false;
-    });
+    if (_inPipMode) pipModeNotifier.value = false;
+    _disposeControllers();
+    _playerStarted = false;
+    _isLoading = false;
+    _hasError = false;
+    _inPipMode = false;
+    _retries = 0;
+    _behindLive = false;
+    _hasPlayed = false;
+  }
+
+  void _resetPlayer() {
+    _releasePlayer();
+    setState(() {});
   }
 
   Future<void> _enterPip() async {
@@ -199,16 +298,20 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
     }
   }
 
-  // Auto-start when tab becomes visible, stop when hidden
+  // Auto-start (fresh) when the tab becomes visible, release when hidden —
+  // only one live stream runs at a time and it's never resumed stale.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final tickersEnabled = TickerMode.valuesOf(context).enabled;
-    _tabVisible = tickersEnabled;
-    if (tickersEnabled && !_playerStarted && !_isLoading) {
-      _startStream();
-    } else if (!tickersEnabled) {
-      _videoCtrl?.pause();
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible == _tabVisible) return;
+    _tabVisible = visible;
+    if (visible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_canPlay && !_playerStarted) _startStream(manual: true);
+      });
+    } else if (_playerStarted) {
+      _releasePlayer();
     }
   }
 
@@ -265,24 +368,27 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
             ),
           ),
           const Spacer(),
-          // live badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.livePulse,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, color: Colors.white, size: 6),
-                SizedBox(width: 4),
-                Text('مباشر',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-              ],
+          // live badge — grey while behind the live edge; tap to jump to live
+          GestureDetector(
+            onTap: _playerStarted && !_isLoading ? _goLive : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: _behindLive ? Colors.grey.shade600 : AppColors.livePulse,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, color: Colors.white, size: 6),
+                  SizedBox(width: 4),
+                  Text('مباشر',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ),
           if (_playerStarted && !_isLoading) ...[
@@ -308,8 +414,9 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
                   color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppColors.lightText.withValues(alpha: 0.6), size: 22),
               onPressed: _enterPip,
             ),
-            // Refresh
+            // Refresh (also jumps to the live edge)
             IconButton(
+              tooltip: 'العودة لآخر لحظة في البث',
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.all(4),
               icon: const Icon(Icons.refresh_rounded, color: AppColors.gold, size: 22),
@@ -387,14 +494,50 @@ class _LiveTabState extends State<LiveTab> with WidgetsBindingObserver {
       );
     }
     if (_chewieCtrl != null) {
-      return Chewie(controller: _chewieCtrl!);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Chewie(controller: _chewieCtrl!),
+          if (_behindLive)
+            PositionedDirectional(
+              top: 10,
+              start: 10,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: _goLive,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.circle, color: AppColors.livePulse, size: 9),
+                        SizedBox(width: 6),
+                        Text('العودة للبث المباشر',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold)),
+                        SizedBox(width: 4),
+                        Icon(Icons.fast_forward_rounded,
+                            color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
     }
     return const SizedBox.shrink();
   }
 
   Widget _buildStartScreen() {
     return GestureDetector(
-      onTap: _startStream,
+      onTap: _retry,
       child: Stack(
         fit: StackFit.expand,
         children: [

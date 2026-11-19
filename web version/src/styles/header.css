@@ -98,14 +98,14 @@
         object-fit: contain;
     display: block;
     cursor: pointer;
-    width: 68px;
-    height: 68px;
+    width: 80px;
+    height: 80px;
     transition: width .35s ease, height .35s ease;
 }
 
 .header--scrolled .logo-box img {
-    width: 76px;
-    height: 76px;
+    width: 88px;
+    height: 88px;
 }
 
 @media (max-width: 768px) {
@@ -114,13 +114,13 @@
     }
 
     .logo-box img {
-        width: 72px;
-        height: 72px;
+        width: 84px;
+        height: 84px;
     }
 
     .header--scrolled .logo-box img {
-        width: 76px;
-        height: 76px;
+        width: 88px;
+        height: 88px;
     }
 }
 
@@ -199,6 +199,110 @@
 
 .header-actions button:hover {
   color:white
+}
+
+/* ====== Day/night toggle ====== */
+.header-actions {
+    align-items: center;
+    display: flex;
+}
+
+.header-actions .theme-toggle {
+    margin: 0;
+    padding: 0;
+    background: none;
+    display: inline-flex;
+}
+
+/* On mobile the switch lives inside the menu instead */
+@media (max-width: 992px) {
+    .header-actions .theme-toggle {
+        display: none;
+    }
+}
+
+/* Forced LTR so the sun is always on the left and the knob slides the same
+   way in the RTL layout. */
+.theme-toggle__track {
+    direction: ltr;
+    position: relative;
+    flex-shrink: 0;
+    width: 68px;
+    height: 34px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #33241b;
+    display: flex;
+}
+
+.theme-toggle__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f4e3bd;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+    transition: transform .25s ease;
+}
+
+.theme-toggle.is-dark .theme-toggle__knob {
+    transform: translateX(34px);
+}
+
+.theme-toggle__track i {
+    position: relative;
+    flex: 1;
+    font-size: 13px;
+    line-height: 28px;
+    text-align: center;
+    color: #f4e3bd;
+    transition: color .25s ease;
+}
+
+/* The icon sitting on the knob */
+.theme-toggle:not(.is-dark) .theme-toggle__track .fa-sun,
+.theme-toggle.is-dark .theme-toggle__track .fa-moon {
+    color: #33241b;
+}
+
+.theme-toggle:focus-visible {
+    outline: none;
+}
+
+.theme-toggle:focus-visible .theme-toggle__track {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+/* Full-width row at the bottom of the mobile menu */
+.theme-toggle--row {
+    width: 100%;
+    color: #fff;
+    margin-top: 4px;
+    padding: 14px 15px 2px;
+    border-top: 1px solid rgb(255 255 255 / 14%);
+    justify-content: space-between;
+    align-items: center;
+    display: flex;
+}
+
+.theme-toggle__label {
+    align-items: center;
+    gap: 10px;
+    display: flex;
+}
+
+.theme-toggle--row .theme-toggle__track {
+    background: rgb(255 255 255 / 16%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle__knob,
+    .theme-toggle__track i {
+        transition: none;
+    }
 }
 
 /* ====== Search Bar ====== */
@@ -326,13 +430,13 @@
     }
 
     .logo-box img {
-        width: 68px;
-        height: 68px;
+        width: 80px;
+        height: 80px;
     }
 
     .header--scrolled .logo-box img {
-        width: 72px;
-        height: 72px;
+        width: 84px;
+        height: 84px;
     }
 
     .header-actions {

@@ -16,6 +16,7 @@ import Programs from "./pages/Programs";
 import Hajj from "./pages/Hajj";
 import Daily from "./pages/Daily";
 import ProgramsLibrary from "./pages/ProgramsLibrary";
+import ProgramSeries from "./pages/ProgramSeries";
 import ArticleDetail from './pages/ArticleDetail';
 import ProgramDetail from './pages/ProgramDetail';
 import Contact from './pages/Contact';
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/programs/:id" element={<ProgramDetail />} />
               <Route path="/videos" element={<Videos />} />
               <Route path="/library" element={<ProgramsLibrary />} />
+              <Route path="/series" element={<ProgramSeries />} />
               <Route path="/live" element={<Live />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/hajj" element={<Hajj />} />

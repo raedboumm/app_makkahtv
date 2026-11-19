@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:video_player/video_player.dart';
 
 /// Global flag so MainScaffold can hide the bottom bar while any player is in PiP mode.
@@ -19,37 +20,54 @@ String? pipOwner;
 /// MainScaffold uses this to render a fullscreen video-only layer during PiP.
 final homePipVideoNotifier = ValueNotifier<VideoPlayerController?>(null);
 
-/// Starts initializing the live stream during the splash screen so the home
-/// page can begin playback without waiting for a fresh network init.
-class LiveStreamPreloader {
-  static VideoPlayerController? _ctrl;
+// ─── App-wide fullscreen layer ───────────────────────────────────────────────
 
-  static bool get isReady => _ctrl?.value.isInitialized == true;
+/// A player shown full-screen. MainScaffold renders [child] above every tab
+/// (and hides the bottom bar), so fullscreen video is never drawn under it.
+class FullscreenPlayer {
+  final Widget child;
 
-  /// Begin loading [url] in the background. Safe to call multiple times.
-  static Future<void> start(String url) async {
-    if (_ctrl != null) return;
-    try {
-      _ctrl = VideoPlayerController.networkUrl(
-        Uri.parse(url),
-        httpHeaders: const {'User-Agent': 'MakkahTV/1.0 Flutter'},
-      );
-      await _ctrl!.initialize();
-    } catch (_) {
-      _ctrl?.dispose();
-      _ctrl = null;
-    }
+  /// Leaves fullscreen (used by the system back button).
+  final VoidCallback exit;
+  const FullscreenPlayer({required this.child, required this.exit});
+}
+
+final fullscreenPlayerNotifier = ValueNotifier<FullscreenPlayer?>(null);
+
+Future<void> enterLandscapeFullscreen() async {
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+}
+
+Future<void> exitLandscapeFullscreen() async {
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
+  await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+}
+
+void showFullscreen(FullscreenPlayer entry) {
+  fullscreenPlayerNotifier.value = entry;
+}
+
+/// Removes [entry] from the fullscreen layer (if it's still the one shown)
+/// and restores portrait. Safe to call from dispose / build: the notifier is
+/// then updated after the current frame instead of while the tree is locked.
+void clearFullscreen(FullscreenPlayer entry) {
+  void run() {
+    if (fullscreenPlayerNotifier.value != entry) return;
+    fullscreenPlayerNotifier.value = null;
+    exitLandscapeFullscreen();
   }
 
-  /// Take ownership of the pre-initialized controller (caller must dispose it).
-  static VideoPlayerController? consume() {
-    final ctrl = _ctrl;
-    _ctrl = null;
-    return ctrl;
-  }
-
-  static void clear() {
-    _ctrl?.dispose();
-    _ctrl = null;
+  final phase = SchedulerBinding.instance.schedulerPhase;
+  if (phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks) {
+    run();
+  } else {
+    SchedulerBinding.instance.addPostFrameCallback((_) => run());
   }
 }

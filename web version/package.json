@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:site": "vite",
+    "dev:admin": "php -S localhost:4000 -t public",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

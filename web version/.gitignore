@@ -13,6 +13,11 @@ dist-ssr
 *.local
 .env
 
+# Back office: login secrets + saved data (live URL, API keys, messages)
+public/api/config.php
+public/api/data/
+.local-data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
-import '../data/static_data.dart';
-import '../pip_state.dart';
 import 'main_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -57,8 +55,6 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 400));
     _loadCtrl.forward();
-    // Start pre-loading the live stream in the background during splash.
-    LiveStreamPreloader.start(StaticData.liveStream.streamUrl);
     // wait for logo to be fully visible (~3s), then flash shine
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;

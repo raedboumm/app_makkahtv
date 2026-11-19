@@ -7,7 +7,7 @@
 }
 
 .programs-title {
-    color: #1f2937;
+    color: var(--ci-text);
     margin-bottom: 2rem;
     font-size: 1.875rem;
     font-weight: 700

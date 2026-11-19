@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../app_theme.dart';
 import '../models/program.dart';
+import '../widgets/app_youtube_player.dart';
 import '../widgets/social_bar.dart';
 
 class ProgramDetailScreen extends StatefulWidget {
@@ -15,28 +16,17 @@ class ProgramDetailScreen extends StatefulWidget {
 }
 
 class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
+  String? _videoId;
+  // Created only when the user taps play, with autoPlay on — calling play()
+  // on a player that isn't ready yet is ignored (that needed a 2nd tap).
   YoutubePlayerController? _ytCtrl;
-  bool _showPlayer = false;
+  bool get _showPlayer => _ytCtrl != null;
 
   @override
   void initState() {
     super.initState();
     final url = widget.program.youtubeUrl;
-    if (url != null) {
-      final id = YoutubePlayer.convertUrlToId(url);
-      if (id != null) {
-        _ytCtrl = YoutubePlayerController(
-          initialVideoId: id,
-          flags: const YoutubePlayerFlags(
-            autoPlay: false,
-            mute: false,
-            enableCaption: false,
-            forceHD: false,
-            useHybridComposition: false,
-          ),
-        );
-      }
-    }
+    if (url != null) _videoId = YoutubePlayer.convertUrlToId(url);
   }
 
   @override
@@ -45,7 +35,18 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     super.dispose();
   }
 
-  Widget _buildPage(BuildContext context, Widget? player) {
+  void _play() {
+    final id = _videoId;
+    if (id == null || _ytCtrl != null) return;
+    setState(() {
+      _ytCtrl = YoutubePlayerController(
+        initialVideoId: id,
+        flags: const YoutubePlayerFlags(autoPlay: true, enableCaption: false),
+      );
+    });
+  }
+
+  Widget _buildPage(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
     final textColor = isDark ? Colors.white : AppColors.lightText;
@@ -97,14 +98,21 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         ),
                       ),
                     ),
-                  if (_showPlayer && player != null) player,
-                  if (!_showPlayer && _ytCtrl != null)
+                  if (_showPlayer)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: AppYoutubePlayer(
+                          key: ObjectKey(_ytCtrl),
+                          controller: _ytCtrl!,
+                        ),
+                      ),
+                    ),
+                  if (!_showPlayer && _videoId != null)
                     Center(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() => _showPlayer = true);
-                          _ytCtrl!.play();
-                        },
+                        onTap: _play,
                         child: Container(
                           width: 70,
                           height: 70,
@@ -208,15 +216,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
   Widget _buildWatchButton(bool isDark) {
     return GestureDetector(
-      onTap: () {
-        if (_ytCtrl == null) return;
-        if (_showPlayer) {
-          // already showing, scroll up handled by user
-        } else {
-          setState(() => _showPlayer = true);
-          _ytCtrl!.play();
-        }
-      },
+      onTap: _play,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -266,25 +266,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       );
 
   @override
-  Widget build(BuildContext context) {
-    if (_ytCtrl != null && _showPlayer) {
-      return PopScope(
-        canPop: true,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) _ytCtrl?.pause();
-        },
-        child: YoutubePlayerBuilder(
-          player: YoutubePlayer(
-            controller: _ytCtrl!,
-            showVideoProgressIndicator: true,
-            progressIndicatorColor: AppColors.gold,
-          ),
-          builder: (ctx, player) => _buildPage(ctx, player),
-        ),
-      );
-    }
-    return _buildPage(context, null);
-  }
+  Widget build(BuildContext context) => _buildPage(context);
 }
 
 class _MetaChip extends StatelessWidget {

@@ -1,0 +1,524 @@
+/* ============================================================
+   Night theme (ليلي). Active when ThemeToggle sets
+   <html data-theme="dark">. The day theme is the existing per-component CSS;
+   its colors are hardcoded, so this file overrides them in one place. Every
+   rule is prefixed with html[data-theme="dark"] so it outranks those rules
+   regardless of stylesheet load order.
+============================================================ */
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    --dm-bg: #15100b;
+    --dm-surface: #211a13;
+    --dm-surface-2: #2d241a;
+    --dm-line: #40352a;
+    --dm-text: #f2ece1;
+    --dm-muted: #b9ad9b;
+    --dm-gold: #e0b869;
+    --dm-on-gold: #21170d;
+
+    /* Variables the existing stylesheets already read */
+    --text: var(--dm-text);
+    --muted: var(--dm-muted);
+    --bg: var(--dm-bg);
+    --card: var(--dm-surface);
+    --border: var(--dm-line);
+    --line: var(--dm-line);
+    --ink: var(--dm-text);
+    --text-primary: var(--dm-text);
+    --text-muted: var(--dm-muted);
+    --ci-text: var(--dm-text);
+    --ci-muted: var(--dm-muted);
+    --ci-gold-dark: var(--dm-gold);
+    --ci-glow: transparent;
+}
+
+/* ====== Page ====== */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+    color: var(--dm-text);
+    background: var(--dm-bg);
+}
+
+html[data-theme="dark"] .home-wrapper,
+html[data-theme="dark"] section.program-episodes,
+html[data-theme="dark"] .news-wrapper,
+html[data-theme="dark"] .videos-wrapper,
+html[data-theme="dark"] .news-page,
+html[data-theme="dark"] .programs-wrapper,
+html[data-theme="dark"] .contact-wrapper,
+html[data-theme="dark"] .daily-wrapper,
+html[data-theme="dark"] .daily-schedule,
+html[data-theme="dark"] .daily-highlights,
+html[data-theme="dark"] .live-page,
+html[data-theme="dark"] .bg-gray-50 {
+    color: var(--dm-text);
+    background: var(--dm-bg);
+}
+
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .library-page .section-title,
+html[data-theme="dark"] .privacy-wrapper .section-title,
+html[data-theme="dark"] .episodes-title,
+html[data-theme="dark"] .latest-news-title,
+html[data-theme="dark"] .video-section-title,
+html[data-theme="dark"] .news-title,
+html[data-theme="dark"] .programs-title,
+html[data-theme="dark"] .page-title,
+html[data-theme="dark"] .contact-wrapper h1,
+html[data-theme="dark"] .schedule-header h2,
+html[data-theme="dark"] .daily-highlights h2,
+html[data-theme="dark"] .home-section-more {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .home-section-more:hover,
+html[data-theme="dark"] .library-back-btn:hover {
+    color: var(--dm-gold);
+}
+
+html[data-theme="dark"] .title-bar {
+    background: var(--dm-gold);
+}
+
+/* ====== Header ====== */
+html[data-theme="dark"] .header {
+    background: var(--dm-surface);
+    border-bottom-color: #0d0a06;
+}
+
+html[data-theme="dark"] .header-top {
+    background: #0d0a06;
+}
+
+html[data-theme="dark"] .header-main {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .nav-link {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .nav-link:hover {
+    background-color: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .nav-link.active-link,
+html[data-theme="dark"] .mobile-menu a.active-link,
+html[data-theme="dark"] .mobile-link:hover,
+html[data-theme="dark"] .mobile-link.active-link {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+html[data-theme="dark"] .menu-btn {
+    color: var(--dm-text) !important;
+}
+
+html[data-theme="dark"] .mobile-menu {
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .theme-toggle__track {
+    background: var(--dm-bg);
+    box-shadow: inset 0 0 0 1px var(--dm-line);
+}
+
+html[data-theme="dark"] .theme-toggle__knob {
+    background: var(--dm-gold);
+}
+
+html[data-theme="dark"] .theme-toggle__track i {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .theme-toggle.is-dark .theme-toggle__track .fa-moon {
+    color: var(--dm-on-gold);
+}
+
+html[data-theme="dark"] .theme-toggle:focus-visible .theme-toggle__track {
+    outline-color: var(--dm-gold);
+}
+
+html[data-theme="dark"] .theme-toggle--row {
+    color: var(--dm-text);
+    border-top-color: var(--dm-line);
+}
+
+/* The logo artwork is dark, so it needs flipping on dark surfaces */
+html[data-theme="dark"] .logo-box img,
+html[data-theme="dark"] h3.trending-title img,
+html[data-theme="dark"] .channelInfo-title img {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* ====== Hero + most viewed ====== */
+html[data-theme="dark"] #live-hero {
+    background: var(--dm-bg);
+}
+
+html[data-theme="dark"] .hero-gradient {
+    background: var(--dm-bg);
+}
+
+html[data-theme="dark"] .trending-box {
+    background: var(--dm-surface);
+    border-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .trending-title {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .trending-item {
+    background: var(--dm-surface-2);
+    border-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .trending-item:hover {
+    background: var(--dm-line);
+}
+
+html[data-theme="dark"] .trending-item .title {
+    color: var(--dm-text) !important;
+}
+
+html[data-theme="dark"] .trending-item .rank {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+html[data-theme="dark"] .trending-loading,
+html[data-theme="dark"] .trending-empty,
+html[data-theme="dark"] .views-unavailable {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .views {
+    color: var(--dm-gold);
+}
+
+html[data-theme="dark"] .views-skeleton,
+html[data-theme="dark"] .skeleton-line {
+    background: linear-gradient(90deg, var(--dm-surface-2) 25%, var(--dm-line) 37%, var(--dm-surface-2) 63%);
+    background-size: 400% 100%;
+}
+
+/* ====== Video + playlist cards ====== */
+html[data-theme="dark"] .video-card,
+html[data-theme="dark"] .video-card-skeleton {
+    background: var(--dm-surface);
+    box-shadow: 0 2px 8px #00000066;
+}
+
+html[data-theme="dark"] .video-title,
+html[data-theme="dark"] .video-card .title {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .video-desc,
+html[data-theme="dark"] .video-meta,
+html[data-theme="dark"] .video-card .desc,
+html[data-theme="dark"] .library-empty {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .video-modal-content {
+    background: var(--dm-surface);
+}
+
+/* ====== Library + series controls ====== */
+html[data-theme="dark"] .library-filter-btn {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .library-filter-btn:hover {
+    background: var(--dm-line);
+}
+
+html[data-theme="dark"] .library-filter-btn.active {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+html[data-theme="dark"] .library-search input {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .library-search input:focus {
+    background: var(--dm-surface);
+    border-color: var(--dm-gold);
+}
+
+html[data-theme="dark"] .library-search input::placeholder,
+html[data-theme="dark"] .library-search i,
+html[data-theme="dark"] .library-loading-more {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .library-back-btn {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .library-filters-arrow {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .library-filters-arrow.end::before {
+    background: linear-gradient(to right, var(--dm-bg) 55%, transparent);
+}
+
+html[data-theme="dark"] .library-filters-arrow.start::before {
+    background: linear-gradient(to left, var(--dm-bg) 55%, transparent);
+}
+
+html[data-theme="dark"] .library-load-more button {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+html[data-theme="dark"] .library-load-more button:hover {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+/* ====== Channel frequencies card ====== */
+html[data-theme="dark"] .channelInfo-box {
+    background: var(--dm-surface);
+    border-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .channelInfo-box::after {
+    display: none;
+}
+
+html[data-theme="dark"] .channelInfo-item,
+html[data-theme="dark"] .channelInfo-item:hover {
+    background: var(--dm-surface-2);
+    border-color: var(--dm-line);
+}
+
+/* ====== Episode cards + pagination ====== */
+html[data-theme="dark"] section.program-episodes .episode-card,
+html[data-theme="dark"] .episode-image-wrapper,
+html[data-theme="dark"] .episodes-wrapper.BLkmeetings {
+    color: var(--dm-text);
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .episodes-dots .dot {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+    border-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .episodes-dots .dot.active,
+html[data-theme="dark"] .episodes-dots .dot:focus-visible {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+    border-color: var(--dm-gold);
+}
+
+/* ====== Privacy policy ====== */
+html[data-theme="dark"] .privacy-intro,
+html[data-theme="dark"] .privacy-section p,
+html[data-theme="dark"] .privacy-section li {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .privacy-section h2 {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .privacy-updated {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .privacy-lang-toggle button {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .privacy-lang-toggle button:hover {
+    background: var(--dm-line);
+}
+
+html[data-theme="dark"] .privacy-lang-toggle button.active {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+/* ====== Contact ====== */
+html[data-theme="dark"] .contact-form {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .form-group label {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .form-group input,
+html[data-theme="dark"] .form-group textarea {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+    border-color: var(--dm-line);
+}
+
+/* CAPTCHA image keeps its light background so the digits stay readable */
+html[data-theme="dark"] .captcha-image {
+    border-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .captcha-refresh {
+    background: var(--dm-surface-2);
+    border-color: var(--dm-line);
+    color: var(--dm-gold);
+}
+
+html[data-theme="dark"] .captcha-refresh:hover:not(:disabled) {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .captcha-placeholder {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .contact-success {
+    background: var(--dm-surface);
+    border-color: var(--dm-line);
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .contact-success h2,
+html[data-theme="dark"] .contact-success-countdown strong {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .contact-success p {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .contact-success-note {
+    color: var(--dm-gold) !important;
+}
+
+html[data-theme="dark"] .contact-success-bar {
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .contact-success-icon {
+    background: rgba(47, 122, 79, 0.2);
+}
+
+html[data-theme="dark"] .contact-success-icon svg {
+    stroke: #6fcf97;
+}
+
+html[data-theme="dark"] .submit-btn {
+    color: var(--dm-on-gold);
+    background: var(--dm-gold);
+}
+
+/* ====== Footer ====== */
+html[data-theme="dark"] .footer {
+    background: #0d0a06;
+}
+
+html[data-theme="dark"] .footer__bottom {
+    border-top-color: var(--dm-line);
+}
+
+html[data-theme="dark"] .socialBtn {
+    background: var(--dm-surface-2);
+}
+
+/* ====== Generic utility classes used by article cards ====== */
+html[data-theme="dark"] .bg-white {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .text-gray-800 {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .text-gray-500,
+html[data-theme="dark"] .text-gray-600 {
+    color: var(--dm-muted);
+}
+
+/* ====== Older pages (news, programs, live, daily, article detail) ====== */
+html[data-theme="dark"] .pagination span {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .program-card,
+html[data-theme="dark"] .live-box,
+html[data-theme="dark"] .highlight-card {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .program-name,
+html[data-theme="dark"] .live-content h2,
+html[data-theme="dark"] .highlight-card h3 {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .program-description,
+html[data-theme="dark"] .program-meta,
+html[data-theme="dark"] .live-content p,
+html[data-theme="dark"] .info-item,
+html[data-theme="dark"] .schedule-header p,
+html[data-theme="dark"] .highlight-card p {
+    color: var(--dm-muted);
+}
+
+html[data-theme="dark"] .program-schedule,
+html[data-theme="dark"] .time-badge {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .daily-hero {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .daily-title,
+html[data-theme="dark"] .daily-subtitle {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .schedule-card,
+html[data-theme="dark"] .card-content {
+    background: var(--dm-surface);
+}
+
+html[data-theme="dark"] .card-content .program-name,
+html[data-theme="dark"] .program-time {
+    color: var(--dm-text);
+}
+
+html[data-theme="dark"] .share-btn,
+html[data-theme="dark"] .tag,
+html[data-theme="dark"] .suggestion-card {
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .detail-summary,
+html[data-theme="dark"] .keyfacts,
+html[data-theme="dark"] .detail-body blockquote {
+    color: var(--dm-text);
+    background: var(--dm-surface-2);
+}
+
+html[data-theme="dark"] .detail-body,
+html[data-theme="dark"] .quick-stats,
+html[data-theme="dark"] .keyfacts h3,
+html[data-theme="dark"] .keyfacts li,
+html[data-theme="dark"] .author-bio,
+html[data-theme="dark"] .timeline ol {
+    color: var(--dm-text);
+}

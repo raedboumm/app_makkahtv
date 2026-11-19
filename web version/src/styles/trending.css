@@ -9,7 +9,7 @@
 }
 
 .trending-title {
-    color: #33241b;
+    color: var(--ci-text);
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
@@ -78,6 +78,7 @@ h3.trending-title img {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical; 
     line-height: 1.4;padding: 6px 0;    font-size: 15px;
+    text-align: start;
     display: -webkit-box;
     overflow: hidden
 }

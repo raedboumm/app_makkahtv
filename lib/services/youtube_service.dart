@@ -12,8 +12,8 @@ class YouTubeService {
   static const String _apiKey = String.fromEnvironment('YOUTUBE_API_KEY');
   // SHA-1 of the signing certificate registered on the key (env.json).
   static const String _androidCert = String.fromEnvironment('YOUTUBE_ANDROID_CERT');
-  static const String _androidPackage = 'com.example.makkah_tv';
-  static const String _iosBundleId = 'com.example.makkahTv';
+  static const String _androidPackage = 'com.md.makkatv';
+  static const String _iosBundleId = 'com.erstream.MakkahTV';
   static const String _base = 'https://www.googleapis.com/youtube/v3';
   static const Duration _timeout = Duration(seconds: 15);
 
@@ -92,25 +92,44 @@ class YouTubeService {
     return {};
   }
 
+  /// GET with retries: right after launch (or on flaky Wi-Fi) the first
+  /// request often fails with a DNS/socket error even though the network is
+  /// fine a second later. Retries network errors / timeouts / 5xx; API
+  /// errors like 403 (quota, key) fail fast.
   static Future<Map<String, dynamic>> _get(String path, Map<String, String> params) async {
     final uri = Uri.parse('$_base/$path').replace(queryParameters: {...params, 'key': _apiKey});
-    final res = await http.get(uri, headers: _appHeaders).timeout(_timeout);
-    if (res.statusCode != 200) {
-      throw Exception('YouTube API ${res.statusCode}: ${res.body}');
+    Object lastError = Exception('YouTube API request failed');
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await Future.delayed(Duration(milliseconds: 1500 * attempt));
+      try {
+        final res = await http.get(uri, headers: _appHeaders).timeout(_timeout);
+        if (res.statusCode == 200) {
+          return json.decode(res.body) as Map<String, dynamic>;
+        }
+        final error = Exception('YouTube API ${res.statusCode}: ${res.body}');
+        if (res.statusCode < 500) throw _ApiError(error);
+        lastError = error;
+      } on _ApiError catch (e) {
+        throw e.error;
+      } catch (e) {
+        lastError = e; // SocketException, TimeoutException, ClientException…
+      }
     }
-    return json.decode(res.body) as Map<String, dynamic>;
+    throw lastError;
   }
 
   // ── Cache (shared_preferences) ─────────────────────────────────────────────
 
-  static Future<List<Map<String, dynamic>>?> _readList(String key) async {
+  /// [allowStale] returns an expired cache too — used as an offline
+  /// fallback so a failed refresh still shows the last known videos.
+  static Future<List<Map<String, dynamic>>?> _readList(String key, {bool allowStale = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(key);
       if (raw == null) return null;
       final decoded = json.decode(raw) as Map<String, dynamic>;
       final ts = DateTime.fromMillisecondsSinceEpoch((decoded['ts'] as num).toInt());
-      if (DateTime.now().difference(ts) > _listTtl) return null;
+      if (!allowStale && DateTime.now().difference(ts) > _listTtl) return null;
       final list = (decoded['list'] as List).cast<Map<String, dynamic>>();
       // Reject an empty list — it was likely written while the API key was missing.
       if (list.isEmpty) return null;
@@ -183,7 +202,15 @@ class YouTubeService {
         }
       }
       await prefs.setString(_viewCountsKey, json.encode(cache));
-    } catch (_) {}
+    } catch (_) {
+      // Offline: fall back to the last known (expired) counts.
+      for (final id in stale) {
+        final entry = cache[id] as Map<String, dynamic>?;
+        if (entry != null && !result.containsKey(id)) {
+          result[id] = (entry['count'] as num).toInt();
+        }
+      }
+    }
     return result;
   }
 
@@ -205,7 +232,7 @@ class YouTubeService {
       if (videoId == null || published == null) continue; // private/unpublished
       items.add(YouTubeVideo(
         id: videoId,
-        title: item['snippet']?['title']?.toString() ?? '',
+        title: fixTitle(item['snippet']?['title']?.toString() ?? ''),
         thumbnail: _bestThumb(item['snippet']?['thumbnails'] as Map?),
         publishedAt: DateTime.tryParse(published.toString()) ?? DateTime.fromMillisecondsSinceEpoch(0),
       ));
@@ -258,8 +285,112 @@ class YouTubeService {
       await _writeList(_latestKey, videos.map((v) => v.toJson()).toList());
       return videos;
     } catch (_) {
-      return [];
+      final stale = await _readList(_channelKey, allowStale: true) ??
+          await _readList(_latestKey, allowStale: true);
+      if (stale == null) return [];
+      final list = stale.map(YouTubeVideo.fromJson).toList()
+        ..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+      return list.take(limit).toList();
     }
+  }
+
+  // ── Most viewed (home "الأكثر مشاهدة") ─────────────────────────────────────
+  // Same as the web's fetchTopChannelVideos: the channel's real top videos.
+
+  static const String _topKey = 'makkah_yt_top_videos';
+  // search.list costs 100 quota units per call and the ranking barely moves,
+  // so this cache lives much longer than the others.
+  static const Duration _topTtl = Duration(hours: 24);
+  static final Map<int, Future<List<YouTubeVideo>>> _topInFlight = {};
+
+  // A duration of 0 means a live/upcoming broadcast, not a finished video.
+  static List<YouTubeVideo> _rankByViews(Iterable<YouTubeVideo> videos, int limit) =>
+      (videos.where((v) => v.duration > 0).toList()
+            ..sort((a, b) => b.viewCount.compareTo(a.viewCount)))
+          .take(limit)
+          .toList();
+
+  static Future<List<YouTubeVideo>> fetchTopVideos({int limit = 7}) async {
+    final catalog = await _readList(_channelKey);
+    if (catalog != null && catalog.isNotEmpty) {
+      return _rankByViews(catalog.map(YouTubeVideo.fromJson), limit);
+    }
+
+    final key = '${_topKey}_$limit';
+    final cached = await _readTopCache(key);
+    if (cached != null) return cached;
+
+    final inFlight = _topInFlight[limit];
+    if (inFlight != null) return inFlight;
+
+    final future = () async {
+      if (!isConfigured) return <YouTubeVideo>[];
+      try {
+        // Ask for extra results so live broadcasts filtered out below
+        // don't leave the list short.
+        final search = await _get('search', {
+          'part': 'id',
+          'channelId': channelId,
+          'type': 'video',
+          'order': 'viewCount',
+          'maxResults': '${limit + 5}',
+        });
+        final ids = (search['items'] as List? ?? [])
+            .map((e) => e['id']?['videoId']?.toString())
+            .whereType<String>()
+            .toList();
+        if (ids.isEmpty) return <YouTubeVideo>[];
+
+        // Titles come from videos.list because search.list HTML-escapes them.
+        final data = await _get('videos', {
+          'part': 'snippet,statistics,contentDetails',
+          'id': ids.join(','),
+        });
+        final videos = _rankByViews(
+          (data['items'] as List? ?? []).map((v) => YouTubeVideo(
+                id: v['id'].toString(),
+                title: fixTitle(v['snippet']?['title']?.toString() ?? ''),
+                thumbnail: _bestThumb(v['snippet']?['thumbnails'] as Map?),
+                publishedAt:
+                    DateTime.tryParse(v['snippet']?['publishedAt']?.toString() ?? '') ??
+                        DateTime.fromMillisecondsSinceEpoch(0),
+                viewCount: int.tryParse(v['statistics']?['viewCount']?.toString() ?? '') ?? 0,
+                duration: _parseIsoDuration(v['contentDetails']?['duration']?.toString() ?? ''),
+              )),
+          limit,
+        );
+        await _writeList(key, videos.map((v) => v.toJson()).toList());
+        return videos;
+      } catch (_) {
+        // Offline: last known ranking (top cache, else the full catalog).
+        final stale = await _readList(key, allowStale: true);
+        if (stale != null) return stale.map(YouTubeVideo.fromJson).toList();
+        final staleCatalog = await _readList(_channelKey, allowStale: true);
+        if (staleCatalog != null) {
+          return _rankByViews(staleCatalog.map(YouTubeVideo.fromJson), limit);
+        }
+        return <YouTubeVideo>[];
+      } finally {
+        _topInFlight.remove(limit);
+      }
+    }();
+    _topInFlight[limit] = future;
+    return future;
+  }
+
+  /// Like [_readList] but with the 24h TTL of the top-videos cache.
+  static Future<List<YouTubeVideo>?> _readTopCache(String key) async {
+    final list = await _readList(key, allowStale: true);
+    if (list == null) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final decoded = json.decode(prefs.getString(key)!) as Map<String, dynamic>;
+      final ts = DateTime.fromMillisecondsSinceEpoch((decoded['ts'] as num).toInt());
+      if (DateTime.now().difference(ts) > _topTtl) return null;
+    } catch (_) {
+      return null;
+    }
+    return list.map(YouTubeVideo.fromJson).toList();
   }
 
   // ── Full channel catalog (مكتبة البرامج) ────────────────────────────────────
@@ -305,6 +436,11 @@ class YouTubeService {
       } catch (_) {
         // Return what already streamed in, but don't cache it: a partial
         // catalog would otherwise be served as the full one for 3 hours.
+        // Nothing at all (offline) → last known catalog, even if expired.
+        if (all.isEmpty) {
+          final stale = await _readList(_channelKey, allowStale: true);
+          if (stale != null) all.addAll(stale.map(YouTubeVideo.fromJson));
+        }
       } finally {
         _channelInFlight = null;
         _channelListeners.clear();
@@ -344,7 +480,7 @@ class YouTubeService {
           for (final p in (data['items'] as List? ?? [])) {
             playlists.add(YouTubePlaylist(
               id: p['id'].toString(),
-              title: p['snippet']?['title']?.toString() ?? '',
+              title: fixTitle(p['snippet']?['title']?.toString() ?? ''),
               thumbnail: _bestThumb(p['snippet']?['thumbnails'] as Map?),
               itemCount: (p['contentDetails']?['itemCount'] as num?)?.toInt() ?? 0,
             ));
@@ -354,7 +490,8 @@ class YouTubeService {
         await _writeList(_playlistsKey, playlists.map((p) => p.toJson()).toList());
         return playlists;
       } catch (_) {
-        return <YouTubePlaylist>[];
+        final stale = await _readList(_playlistsKey, allowStale: true);
+        return stale?.map(YouTubePlaylist.fromJson).toList() ?? <YouTubePlaylist>[];
       } finally {
         _playlistsInFlight = null;
       }
@@ -388,7 +525,8 @@ class YouTubeService {
         await _writeList(_playlistKey(playlistId), videos.map((v) => v.toJson()).toList());
         return videos;
       } catch (_) {
-        return <YouTubeVideo>[];
+        final stale = await _readList(_playlistKey(playlistId), allowStale: true);
+        return stale?.map(YouTubeVideo.fromJson).toList() ?? <YouTubeVideo>[];
       } finally {
         _playlistVideosInFlight.remove(playlistId);
       }
@@ -396,4 +534,10 @@ class YouTubeService {
     _playlistVideosInFlight[playlistId] = future;
     return future;
   }
+}
+
+/// Non-retryable API response (4xx) — see [YouTubeService._get].
+class _ApiError implements Exception {
+  final Exception error;
+  const _ApiError(this.error);
 }

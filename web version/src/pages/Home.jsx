@@ -5,22 +5,12 @@ import PrayerTimes from "../components/PrayerTimes";
 import TrendingArticles from "../components/TrendingArticles";
 import "../styles/home.css";
 import ChannelInfo from "../components/ChannelInfo";
-import { extractYouTubeId, fetchViewCounts } from "../services/youtube";
+import { extractYouTubeId, fetchTopChannelVideos, fetchViewCounts } from "../services/youtube";
 import { LiveStreamSlot } from "../context/LiveStream";
+import { scrollToSection } from "../services/scrollToSection";
 
-// Declared once at module level: creating React.lazy inside render makes a
-// brand-new component type on every render, remounting these sections.
-const ProgramLive = React.lazy(() => import("../components/ProgramLive.jsx"));
-const ProgramEpisodes = React.lazy(() => import("../components/ProgramEpisodes.jsx"));
-
-import poster1 from "../assets/episode/post1.png";
-import poster2 from "../assets/episode/poste2.png";
-import poster3 from "../assets/episode/poste3.png";
-import poster4 from "../assets/episode/poste4.png";
-import poster5 from "../assets/episode/post5.png";
-import programMakhtv from "../assets/program_makhtv.jpg";
-import chanel1  from "../assets/chanel1.jpg";
-import chanel2 from "../assets/chanel2.jpg";
+import HomeLibrarySection from "../components/HomeLibrarySection";
+import HomeSeriesSection from "../components/HomeSeriesSection";
 
 
 
@@ -198,7 +188,8 @@ const Home = () => {
     }
   ];
 
-  // Static most viewed
+  // Fallback for "most viewed", shown only when the channel's real top videos
+  // can't be fetched.
   const staticMostViewed = [
     {
       id: 1,
@@ -243,12 +234,38 @@ const Home = () => {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // ✅ Fetch real YouTube view counts for "most viewed".
+  // ✅ "Most viewed" = the channel's real top 7 on YouTube.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchTopChannelVideos(7).then((top) => {
+      if (cancelled) return;
+      setMostViewed(
+        top.length > 0
+          ? top.map((v) => ({
+              id: v.id,
+              title_ar: v.title.replace(/\s*\|\s*قناة مكة\s*$/, ""),
+              view_count: v.viewCount,
+              link: `https://www.youtube.com/watch?v=${v.id}`,
+            }))
+          : // view_count starts as null (loading skeleton) — the static numbers
+            // above were placeholders only, never real, so we never display them.
+            staticMostViewed.map((item) => ({ ...item, view_count: null }))
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Fetch real YouTube view counts for the fallback "most viewed" list.
   // view_count stays null (-> skeleton) until the API answers, so the fake
   // static numbers are never shown. Items the API can't resolve become -1
   // (-> "unavailable"), never a wrong/stale number.
   useEffect(() => {
-    if (mostViewed.length === 0) return;
+    if (!mostViewed.some((item) => item.view_count === null)) return;
 
     let cancelled = false;
     const ids = mostViewed.map((item) => extractYouTubeId(item.link));
@@ -276,8 +293,8 @@ const Home = () => {
   }, []);
 
   // Picks up a scroll target left by the header when a nav item (e.g. البث
-  // المباشر, لقاءات مباشرة) was clicked from another page — those sections
-  // only exist here, so the header navigates home and leaves this for us.
+  // المباشر) was clicked from another page — that section
+  // only exists here, so the header navigates home and leaves this for us.
   // Waits for loading to finish since that's when these sections actually
   // render.
   useEffect(() => {
@@ -291,13 +308,7 @@ const Home = () => {
       const { id, live } = JSON.parse(raw);
       if (live) setSelectedVideo(null);
 
-      requestAnimationFrame(() => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const offset = 100;
-        const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
-        window.scrollTo({ top: elementPosition - offset, behavior: "smooth" });
-      });
+      scrollToSection(id);
     } catch (e) {}
   }, [loading]);
 
@@ -308,9 +319,6 @@ const Home = () => {
       setFeaturedArticles(staticFeaturedArticles);
       setArticles(staticArticles);
       setVideos(staticVideos);
-      // view_count starts as null (loading skeleton) — the static numbers
-      // above were placeholders only, never real, so we never display them.
-      setMostViewed(staticMostViewed.map((item) => ({ ...item, view_count: null })));
       setVideosPage(1);
       setVideosTotalPages(1);
       setLoading(false);
@@ -415,115 +423,11 @@ const Home = () => {
         </div>
        
       </section>
-      {/* ✅ Live Programs */}
-      {(() => {
-        
-        const livePrograms = [
-          {
-            program: "مبرور",
-            description: "",
-            time: "3:00 صباحا",
-            youtube: "https://www.youtube.com/watch?v=lhwurDCEss4",
-            image1: "https://tse3.mm.bing.net/th/id/OIP.sY-EBs0KfTJsBgviGEjJ9QHaEo?rs=1&pid=ImgDetMain&o=7&rm=3",
-            image2: "https://tse3.mm.bing.net/th/id/OIP.sY-EBs0KfTJsBgviGEjJ9QHaEo?rs=1&pid=ImgDetMain&o=7&rm=3"
-          },
-          {
-            program: "قيم الزحام",
-            description: "",
-            time: "03:30 صباحا",
-            youtube: "https://www.youtube.com/watch?v=vDs_ab_J96I",
-            image1: "https://th.bing.com/th/id/OIP.sXHhlD67I7ASj8gktNLwTQHaEK?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3",
-            image2: "https://th.bing.com/th/id/OIP.sXHhlD67I7ASj8gktNLwTQHaEK?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3"
-          },
-          {
-            program: "استكشاف حدود الحرم",
-            description: "",
-            time: "08:15 صباحا",
-            youtube: "https://www.youtube.com/watch?v=QlasJcax37k",
-            image1: "https://tse2.mm.bing.net/th/id/OIP.hd3s6LoBEA09xi4AbTuw4wHaEJ?rs=1&pid=ImgDetMain&o=7&rm=3",
-            image2: "https://tse2.mm.bing.net/th/id/OIP.hd3s6LoBEA09xi4AbTuw4wHaEJ?rs=1&pid=ImgDetMain&o=7&rm=3"
-          },
-          {
-            program: "أرث الخليلين",
-            description: "",
-            time: "08:30 صباحا",
-            youtube: "https://www.youtube.com/watch?v=hE9VDhUDT-4",
-            image1: "https://tse4.mm.bing.net/th/id/OIP.exvEBk30EIcc2X94UdWk5QHaEK?rs=1&pid=ImgDetMain&o=7&rm=3",
-            image2: "http://tse4.mm.bing.net/th/id/OIP.exvEBk30EIcc2X94UdWk5QHaEK?rs=1&pid=ImgDetMain&o=7&rm=3"
-          },
-          {
-            program: "آيات الحج",
-            description: "",
-            time: "09:15 صباحا",
-            youtube: "https://www.youtube.com/watch?v=WIZ8I4pxqQA",
-            image1: programMakhtv,
-            image2: programMakhtv
-          },
-          {
-            program: "دروس الحرم",
-            description: "",
-            time: "10:00 صباحا",
-            youtube: "https://www.youtube.com/watch?v=WIZ8I4pxqQA",
-            image1: "https://tse4.mm.bing.net/th/id/OIP.BtWWY5gn2oQlyf8lRBnCswHaHa?w=1000&h=1000&rs=1&pid=ImgDetMain&o=7&rm=3",
-            image2: "https://tse4.mm.bing.net/th/id/OIP.BtWWY5gn2oQlyf8lRBnCswHaHa?w=1000&h=1000&rs=1&pid=ImgDetMain&o=7&rm=3"
-          }
-        ];
-
-        return (
-          <React.Suspense fallback={null}>
-            <ProgramLive title="البث اليومي" programs={livePrograms} />
-          </React.Suspense>
-        );
-      })()}
-
- <div  id="articles-section"></div>
-      {/* ✅ Latest News + Sidebar */}
-      <section className="news-wrapper" >
+      {/* ✅ Program library + Sidebar */}
+      <section id="library-section" className="news-wrapper" >
         <div className="container news-layout">
           {/* Main News */}
-          <div className="articles-section">
-              
-              <h2 className="section-title">
-                <span className="title-bar"></span> أحدث البرامج
-              </h2>
-              <div className="grid news-grid">
-                {(() => {
-                  const channelNews = [
-                  {
-                    id: 'channel-1',
-                    slug: 'ayat-tafsir-21',
-                    title_ar: 'آية وتفسير 21  | قناة مكة',
-                    summary_ar: '',
-                    image_url: chanel1,
-                    category_name: 'البرامج',
-                    category_slug: 'programm',
-                    is_breaking: 0,
-                    view_count: 465,
-                    publish_date: '2026-03-28',
-                    youtube: "https://www.youtube.com/watch?v=BMz55PspzKg",
-                  },
-                  {
-                    id: 'channel-2',
-                    slug: 'wadaann makka',
-                    title_ar: 'وداعا مكة | قناة مكة',
-                    summary_ar: '',
-                    image_url: chanel2,
-                    category_name: 'البرامج',
-                    category_slug: 'programm',
-                    is_breaking: 0,
-                    view_count: 934,
-                    publish_date: '2026-03-26',
-                    youtube: "https://www.youtube.com/watch?v=VBddHbHXPkc",
-                  },
-                ];
-                  return channelNews.map((article, i) => (
-                    <ArticleCard key={article.id || i} article={article} />
-                  ));
-                })()}
-
-              </div>
-
-            </div>
+          <HomeLibrarySection />
 
           
 
@@ -540,60 +444,10 @@ const Home = () => {
         </div>
       </section>
  
-      {/* ✅ Live Programs */}
-     
-      <section id="episodes-wrapper" className="episodes-wrapper">
+      {/* ✅ Program series + Sidebar */}
+      <section id="series-section" className="episodes-wrapper">
         <div className="container news-layout">
-      {(() => {
-        const episodes = [
-          {
-            program: "المكرمة 1443 | مكة خير",
-            episode: "حلقة 12 - أصوات من المسجد الحرام",
-            time: "28 دقيقة",
-            youtube: "https://www.youtube.com/watch?v=ccV974FRPI8&list=PLSG0qi3h4n37Q_TYX51GDk691TqaRvHHV",
-            image1: poster1,
-            image2: "https://i.ytimg.com/vi/ccV974FRPI8/mqdefault.jpg"
-          },
-          {
-            program: "أول من سكن مكة | مكة المكان | المكرمة | قناة مكة",
-            episode: "برنامج المكرمة واجهة إعلامية واسعة للتعريف بمكة المكرمة وكعبتها المشرفة وآياتها البينات وخصائصها الباهرات ورجالها العظام وتاريخها المجيد ومن بعث فيها من الرسل وما نزل بها من الكتب وما أودع الله فيها من الهدى والفضل",
-            time: "34 دقيقة",
-            youtube: "https://www.youtube.com/watch?v=qKS9sC3nl_c&list=PLSG0qi3h4n36JTbcxMZVpxW-GPyb1dLhI",
-            image1: poster2,
-            image2: "https://i.ytimg.com/vi/kDhScAcGyVM/hqdefault.jpg?sqp=-oaymwEcCNACELwBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLAnvyNXLmzg6LqaP44iY64QOJQ7NQ"
-          },
-          {
-            program: "الاربعون المكية 39 وفد الله | قناة مكة",
-            episode: "باب الطهارة – الفتاوى الشائعة",
-            time: "22 دقيقة",
-            youtube: "https://www.youtube.com/watch?v=TKUcUAecRtI",
-            image1: poster3,
-            image2: "https://i.ytimg.com/vi/vDs_ab_J96I/hqdefault.jpg?sqp=-oaymwE2CNACELwBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhlIF4oTjAP&rs=AOn4CLB8oAC6mzG2Z-Y7J6Dfa1Qgyu0vCA"
-          },
-          {
-            program: "أطهر انسان | قناة مكة",
-            episode: "مولد الرسول ﷺ – البداية المباركة",
-            time: "30 دقيقة",
-            youtube: "https://www.youtube.com/watch?v=5j1Vt9M2eo0",
-            image1: poster4,
-            image2: "https://i.ytimg.com/vi/kdZVmYqdN-M/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLDFLZ62M3di-azXvBPz0U2ehvuTVg"
-          },
-          {
-            program: "حارات مكة القديمة | قناة مكة",
-            episode: "برنامج المكرمة واجهة إعلامية واسعة للتعريف بمكة المكرمة",
-            time: "22 دقيقة",
-            youtube: "https://www.youtube.com/watch?v=kdZVmYqdN-M&list=PLSG0qi3h4n342_0h_gSjHvUzQAmnpD2Ik&index=1",
-            image1: poster5,
-            image2: "https://i.ytimg.com/vi/pVvkKzvWWBQ/hqdefault.jpg?sqp=-oaymwE2CNACELwBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIGIoKzAP&rs=AOn4CLB1OW9fLilwdQjGq1bJZZkbKd8omg"
-          },
-        ];
-
-        return (
-          <React.Suspense fallback={null}>
-            <ProgramEpisodes title="لقاءات مباشرة" episodes={episodes} />
-          </React.Suspense>
-        );
-      })()}
+          <HomeSeriesSection />
  {/* Sidebar */}
           <aside className="sidebar">
 

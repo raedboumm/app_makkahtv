@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../app_theme.dart';
-import '../models/program.dart';
 import '../models/youtube_video.dart';
-import '../screens/program_detail_screen.dart';
+import '../screens/video_player_screen.dart';
 import '../services/youtube_service.dart';
 
-/// Opens a YouTube video in the existing program detail / player screen.
-void openYouTubeVideo(BuildContext context, YouTubeVideo v) {
+/// Opens [v] in the player screen. When [queue] is given (a playlist or the
+/// list the video was picked from), the rest of it is shown under the video
+/// and plays next automatically.
+void openYouTubeVideo(
+  BuildContext context,
+  YouTubeVideo v, {
+  List<YouTubeVideo>? queue,
+  String? title,
+}) {
+  final list = (queue == null || queue.isEmpty) ? [v] : queue;
+  var index = list.indexWhere((e) => e.id == v.id);
+  final videos = index < 0 ? [v, ...list] : list;
+  if (index < 0) index = 0;
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => ProgramDetailScreen(
-        program: Program(
-          id: 0,
-          nameAr: v.title,
-          imageUrl: v.thumbnail.isNotEmpty ? v.thumbnail : null,
-          scheduleTime: '${YouTubeService.formatViewCount(v.viewCount)} مشاهدة',
-          youtubeUrl: v.url,
-        ),
-      ),
+      builder: (_) => VideoPlayerScreen(videos: videos, initialIndex: index, title: title),
     ),
   );
 }

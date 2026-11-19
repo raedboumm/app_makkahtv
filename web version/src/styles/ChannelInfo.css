@@ -73,6 +73,8 @@
 ============================================================ */
 
 .channelInfo-title {
+    position: relative;
+    z-index: 1;
     color: var(--ci-text);
     font-size: 1.8rem;
     font-weight: 800;

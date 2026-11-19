@@ -1,25 +1,28 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
-import '../widgets/video_card.dart';
+import '../widgets/library_widgets.dart';
 
 /// "مكتبة البرامج" — the channel's full YouTube catalog, same as the web
-/// version's /library page: newest / trending / oldest / playlists + search.
+/// version's /library page: random / newest / trending / oldest + search.
+/// (Playlists live in their own tab, "سلاسل البرامج", like the web's /series.)
 class ProgramsLibraryScreen extends StatefulWidget {
-  const ProgramsLibraryScreen({super.key});
+  final VoidCallback? onOpenMenu;
+  const ProgramsLibraryScreen({super.key, this.onOpenMenu});
 
   @override
   State<ProgramsLibraryScreen> createState() => _ProgramsLibraryScreenState();
 }
 
-enum _Sort { newest, trending, oldest, playlists }
+enum _Sort { random, newest, trending, oldest }
 
 const _sortLabels = {
+  _Sort.random: 'عشوائي',
   _Sort.newest: 'الأحدث',
   _Sort.trending: 'الرائجة',
   _Sort.oldest: 'الأقدم',
-  _Sort.playlists: 'قوائم التشغيل',
 };
 
 const _pageSize = 24;
@@ -28,14 +31,15 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
   // null = still loading (never show fake videos while waiting)
   List<YouTubeVideo>? _videos;
   bool _catalogFullyLoaded = false;
-  _Sort _sort = _Sort.newest;
+  _Sort _sort = _Sort.random;
   int _visibleCount = _pageSize;
   String _query = '';
 
-  List<YouTubePlaylist>? _playlists;
-  YouTubePlaylist? _openPlaylist;
-  List<YouTubeVideo>? _playlistVideos;
-  int _playlistVisibleCount = _pageSize;
+  // Random order that's new on every app launch but stays put while the
+  // screen lives: videos arriving later (page by page) are appended
+  // shuffled, so visible cards never jump. Same as the web's useRandomOrder.
+  final List<String> _randomOrder = [];
+  final _rng = Random();
 
   final _searchCtrl = TextEditingController();
 
@@ -56,18 +60,28 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
     if (mounted) setState(() => _videos = partial);
   }
 
-  Future<void> _loadCatalog() async {
+  // Network is sometimes not ready right after launch: retry quietly a few
+  // times (keeping the skeleton) before showing the "couldn't load" message.
+  Future<void> _loadCatalog({int attempt = 0}) async {
     final data = await YouTubeService.fetchAllChannelVideos(onProgress: _onCatalogProgress);
     if (!mounted) return;
+    if (data.isEmpty && YouTubeService.isConfigured && attempt < 2) {
+      await Future.delayed(Duration(seconds: 3 * (attempt + 1)));
+      if (mounted) _loadCatalog(attempt: attempt + 1);
+      return;
+    }
     setState(() {
       _videos = data;
       _catalogFullyLoaded = true;
     });
   }
 
-  Future<void> _loadPlaylists() async {
-    final data = await YouTubeService.fetchChannelPlaylists();
-    if (mounted) setState(() => _playlists = data);
+  void _retryCatalog() {
+    setState(() {
+      _videos = null;
+      _catalogFullyLoaded = false;
+    });
+    _loadCatalog();
   }
 
   void _setSort(_Sort s) {
@@ -75,34 +89,32 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
     setState(() {
       _sort = s;
       _visibleCount = _pageSize;
-      _openPlaylist = null;
-      _playlistVideos = null;
     });
-    if (s == _Sort.playlists && _playlists == null) _loadPlaylists();
   }
 
   void _setQuery(String v) {
     setState(() {
       _query = v.trim().toLowerCase();
       _visibleCount = _pageSize;
-      _playlistVisibleCount = _pageSize;
     });
-  }
-
-  Future<void> _openPlaylistTap(YouTubePlaylist p) async {
-    setState(() {
-      _openPlaylist = p;
-      _playlistVideos = null;
-      _playlistVisibleCount = _pageSize;
-    });
-    final videos = await YouTubeService.fetchPlaylistVideos(p.id);
-    if (mounted && _openPlaylist?.id == p.id) setState(() => _playlistVideos = videos);
   }
 
   bool _matches(String title) => _query.isEmpty || title.toLowerCase().contains(_query);
 
+  List<YouTubeVideo> _randomized(List<YouTubeVideo> all) {
+    final known = _randomOrder.toSet();
+    final fresh = all.where((v) => !known.contains(v.id)).map((v) => v.id).toList()
+      ..shuffle(_rng);
+    _randomOrder.addAll(fresh);
+    final byId = {for (final v in all) v.id: v};
+    return [for (final id in _randomOrder) ?byId[id]];
+  }
+
   List<YouTubeVideo> get _sortedFilteredVideos {
-    final list = (_videos ?? []).where((v) => _matches(v.title)).toList();
+    final all = _videos ?? [];
+    final list = (_sort == _Sort.random ? _randomized(all) : List.of(all))
+        .where((v) => _matches(v.title))
+        .toList();
     switch (_sort) {
       case _Sort.newest:
         list.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
@@ -110,7 +122,7 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
         list.sort((a, b) => a.publishedAt.compareTo(b.publishedAt));
       case _Sort.trending:
         list.sort((a, b) => b.viewCount.compareTo(a.viewCount));
-      case _Sort.playlists:
+      case _Sort.random:
         break;
     }
     return list;
@@ -122,67 +134,18 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
     return Column(
       children: [
         SizedBox(height: MediaQuery.of(context).padding.top),
-        _buildHeader(isDark),
+        LibraryHeader(
+          title: 'مكتبة البرامج',
+          icon: Icons.video_library_rounded,
+          hint: 'ابحث عن فيديو...',
+          controller: _searchCtrl,
+          query: _query,
+          onQueryChanged: _setQuery,
+          onOpenMenu: widget.onOpenMenu,
+        ),
         _buildFilters(isDark),
-        Expanded(child: _buildBody(isDark)),
+        Expanded(child: _buildBody()),
       ],
-    );
-  }
-
-  Widget _buildHeader(bool isDark) {
-    final textColor = isDark ? Colors.white : AppColors.lightText;
-    final subColor = isDark ? Colors.white54 : AppColors.lightTextSub;
-    return Container(
-      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.video_library_rounded, color: AppColors.gold, size: 22),
-              const SizedBox(width: 10),
-              Text('مكتبة البرامج',
-                  style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _searchCtrl,
-            onChanged: _setQuery,
-            style: TextStyle(color: textColor, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'ابحث عن فيديو...',
-              hintStyle: TextStyle(color: subColor, fontSize: 13),
-              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.gold),
-              suffixIcon: _query.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: Icon(Icons.close_rounded, color: subColor, size: 18),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        _setQuery('');
-                      },
-                    ),
-              isDense: true,
-              filled: true,
-              fillColor: isDark ? AppColors.darkSurface2 : AppColors.lightSurface2,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: AppColors.gold.withValues(alpha: 0.3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: AppColors.gold.withValues(alpha: 0.3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: const BorderSide(color: AppColors.gold),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -218,206 +181,27 @@ class _ProgramsLibraryScreenState extends State<ProgramsLibraryScreen> {
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody() {
     if (!YouTubeService.isConfigured) {
-      return const _Message('لم يتم إعداد مفتاح YouTube API.');
-    }
-
-    if (_sort == _Sort.playlists) {
-      final open = _openPlaylist;
-      if (open != null) return _buildPlaylistVideos(open, isDark);
-
-      final playlists = _playlists;
-      if (playlists == null) return const _SkeletonGrid(count: 8);
-      if (playlists.isEmpty) {
-        return const _Message('تعذر تحميل قوائم التشغيل الآن، حاول مرة أخرى لاحقًا.');
-      }
-      final filtered = playlists.where((p) => _matches(p.title)).toList();
-      if (filtered.isEmpty) return const _Message('لا توجد نتائج مطابقة لبحثك.');
-      return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
-        gridDelegate: _gridDelegate,
-        itemCount: filtered.length,
-        itemBuilder: (_, i) =>
-            PlaylistCard(playlist: filtered[i], onTap: () => _openPlaylistTap(filtered[i])),
-      );
+      return const LibraryMessage('لم يتم إعداد مفتاح YouTube API.');
     }
 
     final videos = _videos;
-    if (videos == null) return const _SkeletonGrid();
+    if (videos == null) return const LibrarySkeletonGrid();
     if (videos.isEmpty) {
-      return const _Message('تعذر تحميل الفيديوهات الآن، حاول مرة أخرى لاحقًا.');
+      return LibraryMessage('تعذر تحميل الفيديوهات الآن. تحقق من الاتصال ثم أعد المحاولة.',
+          onRetry: _retryCatalog);
     }
     final filtered = _sortedFilteredVideos;
-    if (filtered.isEmpty) return const _Message('لا توجد نتائج مطابقة لبحثك.');
+    if (filtered.isEmpty) return const LibraryMessage('لا توجد نتائج مطابقة لبحثك.');
 
-    return _VideoGrid(
+    return LibraryVideoGrid(
       videos: filtered.take(_visibleCount).toList(),
+      queue: filtered,
+      queueTitle: 'مكتبة البرامج · ${_sortLabels[_sort]}',
       hasMore: _visibleCount < filtered.length,
       onLoadMore: () => setState(() => _visibleCount += _pageSize),
       loadingMore: !_catalogFullyLoaded,
-    );
-  }
-
-  Widget _buildPlaylistVideos(YouTubePlaylist playlist, bool isDark) {
-    final textColor = isDark ? Colors.white : AppColors.lightText;
-    final videos = _playlistVideos;
-
-    Widget content;
-    if (videos == null) {
-      content = const _SkeletonGrid(count: 8);
-    } else if (videos.isEmpty) {
-      content = const _Message('لا توجد فيديوهات في قائمة التشغيل هذه.');
-    } else {
-      final filtered = videos.where((v) => _matches(v.title)).toList();
-      content = filtered.isEmpty
-          ? const _Message('لا توجد نتائج مطابقة لبحثك في هذه القائمة.')
-          : _VideoGrid(
-              videos: filtered.take(_playlistVisibleCount).toList(),
-              hasMore: _playlistVisibleCount < filtered.length,
-              onLoadMore: () => setState(() => _playlistVisibleCount += _pageSize),
-            );
-    }
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: () => setState(() {
-            _openPlaylist = null;
-            _playlistVideos = null;
-          }),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.arrow_forward_rounded, color: AppColors.gold, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    playlist.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(child: content),
-      ],
-    );
-  }
-}
-
-const _gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 2,
-  childAspectRatio: 0.92,
-  crossAxisSpacing: 10,
-  mainAxisSpacing: 10,
-);
-
-class _VideoGrid extends StatelessWidget {
-  final List<YouTubeVideo> videos;
-  final bool hasMore;
-  final VoidCallback onLoadMore;
-  final bool loadingMore;
-  const _VideoGrid({
-    required this.videos,
-    required this.hasMore,
-    required this.onLoadMore,
-    this.loadingMore = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-          sliver: SliverGrid(
-            gridDelegate: _gridDelegate,
-            delegate: SliverChildBuilderDelegate(
-              (_, i) => VideoCard(video: videos[i]),
-              childCount: videos.length,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-            child: Column(
-              children: [
-                if (loadingMore)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('جاري تحميل المزيد من الفيديوهات...',
-                            style: TextStyle(
-                                color: isDark ? Colors.white54 : AppColors.lightTextSub,
-                                fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                if (hasMore)
-                  OutlinedButton(
-                    onPressed: onLoadMore,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.gold,
-                      side: const BorderSide(color: AppColors.gold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-                    ),
-                    child: const Text('تحميل المزيد'),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SkeletonGrid extends StatelessWidget {
-  final int count;
-  const _SkeletonGrid({this.count = 12});
-
-  @override
-  Widget build(BuildContext context) => GridView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: _gridDelegate,
-        itemCount: count,
-        itemBuilder: (_, i) => const VideoCardSkeleton(),
-      );
-}
-
-class _Message extends StatelessWidget {
-  final String text;
-  const _Message(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSub, fontSize: 14),
-        ),
-      ),
     );
   }
 }

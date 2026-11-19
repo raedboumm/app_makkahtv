@@ -1,7 +1,24 @@
 // src/services/youtube.js
 import axios from "axios";
+import { getSiteConfig } from "./siteConfig";
 
-const API_KEY = import.meta.env?.VITE_YOUTUBE_API_KEY;
+// The API key + ids come from the back office (see siteConfig.js), with two
+// separate configs: "library" (مكتبة البرامج — every upload, home sections,
+// view counts) and "playlists" (قوائم التشغيل — channel playlists).
+const DEFAULT_CHANNEL_ID = "UCGJ2xTzBAM-uuxCShVDY88g";
+
+const libraryConfig = async () => {
+  const { library } = await getSiteConfig();
+  const playlistId = library.playlistId;
+  // A channel's uploads playlist id is its channel id with "UU" instead of "UC".
+  const channelId = /^UU/.test(playlistId) ? "UC" + playlistId.slice(2) : DEFAULT_CHANNEL_ID;
+  return { key: library.apiKey, playlistId, channelId };
+};
+
+const playlistsConfig = async () => {
+  const { playlists } = await getSiteConfig();
+  return { key: playlists.apiKey, channelId: playlists.channelId };
+};
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 
 // Real view counts barely move minute to minute, so we cache them for a
@@ -43,7 +60,9 @@ const inFlight = new Map();
 // ids that are missing or stale, in a single batched request.
 export const fetchViewCounts = async (videoIds = []) => {
   const ids = [...new Set(videoIds.filter(Boolean))];
-  if (!API_KEY || ids.length === 0) return {};
+  if (ids.length === 0) return {};
+  const { key: API_KEY } = await libraryConfig();
+  if (!API_KEY) return {};
 
   const now = Date.now();
   const cache = readCache();
@@ -109,6 +128,19 @@ export const formatViewCount = (count) => {
   return `${n}`;
 };
 
+// Manual title overrides for specific videos/playlists whose YouTube title
+// should be shown differently in the app. Matched case-insensitively,
+// ignoring extra whitespace.
+const TITLE_OVERRIDES = {
+  "story of yusuf estes - from darkness to light":
+    "    من الظلام إلى النور - انجليزي",
+};
+
+export const fixTitle = (title = "") => {
+  const key = String(title).trim().replace(/\s+/g, " ").toLowerCase();
+  return TITLE_OVERRIDES[key] || title;
+};
+
 // "PT1H2M3S" -> 3723 (seconds)
 const parseISODuration = (iso = "") => {
   const m = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
@@ -122,8 +154,6 @@ const parseISODuration = (iso = "") => {
 // Makkah TV's channel — resolved once via forHandle and hardcoded since a
 // channel's id/uploads playlist never change, so we don't burn quota
 // re-resolving it on every visit.
-const CHANNEL_ID = "UCGJ2xTzBAM-uuxCShVDY88g";
-const UPLOADS_PLAYLIST_ID = "UUGJ2xTzBAM-uuxCShVDY88g";
 
 // Generic localStorage list cache shared by the catalog, playlists, and
 // per-playlist video fetches below.
@@ -132,7 +162,11 @@ const readListCache = (key, ttlMs) => {
     const raw = JSON.parse(localStorage.getItem(key));
     if (!raw || !raw.ts || !Array.isArray(raw.list)) return null;
     if (Date.now() - raw.ts > ttlMs) return null;
-    return raw.list;
+    // Re-apply title overrides so lists cached before an override was added
+    // still show the corrected title.
+    return raw.list.map((item) =>
+      item && typeof item.title === "string" ? { ...item, title: fixTitle(item.title) } : item
+    );
   } catch (e) {
     return null;
   }
@@ -149,7 +183,7 @@ const writeListCache = (key, list) => {
 const LIST_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 // Fetches a single page of a playlist's items.
-const fetchPlaylistItemsPage = async (playlistId, pageToken) => {
+const fetchPlaylistItemsPage = async (API_KEY, playlistId, pageToken) => {
   const { data } = await axios.get(`${YOUTUBE_API_BASE}/playlistItems`, {
     params: {
       part: "snippet,contentDetails",
@@ -167,7 +201,7 @@ const fetchPlaylistItemsPage = async (playlistId, pageToken) => {
     if (!videoId || !publishedAt) return; // skip private/unpublished entries
     items.push({
       id: videoId,
-      title: item.snippet?.title || "",
+      title: fixTitle(item.snippet?.title || ""),
       thumbnail:
         item.snippet?.thumbnails?.high?.url ||
         item.snippet?.thumbnails?.medium?.url ||
@@ -182,11 +216,11 @@ const fetchPlaylistItemsPage = async (playlistId, pageToken) => {
 
 // Walks every page of a playlist (uploads playlist or any other), returning
 // [{ id, title, thumbnail, publishedAt }] in the playlist's own order.
-const fetchPlaylistItemsAll = async (playlistId) => {
+const fetchPlaylistItemsAll = async (API_KEY, playlistId) => {
   const all = [];
   let pageToken = "";
   do {
-    const { items, nextPageToken } = await fetchPlaylistItemsPage(playlistId, pageToken);
+    const { items, nextPageToken } = await fetchPlaylistItemsPage(API_KEY, playlistId, pageToken);
     all.push(...items);
     pageToken = nextPageToken;
   } while (pageToken);
@@ -196,7 +230,7 @@ const fetchPlaylistItemsAll = async (playlistId) => {
 
 // Batch-fetches real stats + duration for a list of {id, ...} items,
 // 50 ids per call, in parallel, and merges them in.
-const withVideoStats = async (items) => {
+const withVideoStats = async (API_KEY, items) => {
   const idChunks = [];
   for (let i = 0; i < items.length; i += 50) {
     idChunks.push(items.slice(i, i + 50).map((v) => v.id));
@@ -253,13 +287,14 @@ export const fetchAllChannelVideos = async ({ onProgress } = {}) => {
 
   channelProgressSnapshot = [];
   channelFetchInFlight = (async () => {
+    const { key: API_KEY, playlistId: UPLOADS_PLAYLIST_ID } = await libraryConfig();
     if (!API_KEY) return [];
     const allVideos = [];
     try {
       let pageToken = "";
       do {
-        const { items, nextPageToken } = await fetchPlaylistItemsPage(UPLOADS_PLAYLIST_ID, pageToken);
-        const pageWithStats = await withVideoStats(items);
+        const { items, nextPageToken } = await fetchPlaylistItemsPage(API_KEY, UPLOADS_PLAYLIST_ID, pageToken);
+        const pageWithStats = await withVideoStats(API_KEY, items);
         allVideos.push(...pageWithStats);
         channelProgressSnapshot = allVideos.slice();
         channelProgressListeners.forEach((cb) => cb(channelProgressSnapshot));
@@ -282,6 +317,126 @@ export const fetchAllChannelVideos = async ({ onProgress } = {}) => {
   return channelFetchInFlight;
 };
 
+const LATEST_CACHE_KEY = "makkah_yt_latest_videos";
+let latestFetchInFlight = null;
+
+// Newest uploads only (one API page), for the homepage. The uploads playlist
+// is already newest-first, so this avoids walking the whole catalog.
+export const fetchLatestChannelVideos = async () => {
+  const cached =
+    readListCache(CHANNEL_CACHE_KEY, LIST_CACHE_TTL_MS) ||
+    readListCache(LATEST_CACHE_KEY, LIST_CACHE_TTL_MS);
+  if (cached) return cached;
+
+  if (latestFetchInFlight) return latestFetchInFlight;
+
+  latestFetchInFlight = (async () => {
+    const { key: API_KEY, playlistId: UPLOADS_PLAYLIST_ID } = await libraryConfig();
+    if (!API_KEY) return [];
+    try {
+      const { items } = await fetchPlaylistItemsPage(API_KEY, UPLOADS_PLAYLIST_ID);
+      const videos = await withVideoStats(API_KEY, items);
+      writeListCache(LATEST_CACHE_KEY, videos);
+      return videos;
+    } catch (e) {
+      console.error("YouTube latest videos fetch error:", e);
+      return [];
+    } finally {
+      latestFetchInFlight = null;
+    }
+  })();
+
+  return latestFetchInFlight;
+};
+
+const TOP_CACHE_KEY = "makkah_yt_top_videos";
+// search.list costs 100 quota units per call (vs 1 for most other endpoints),
+// and the ranking barely moves day to day, so this cache lives much longer.
+const TOP_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const topFetchInFlight = new Map();
+
+// A duration of 0 means a live/upcoming broadcast, not a finished video.
+const rankByViews = (videos, limit) =>
+  videos
+    .filter((v) => v.duration > 0)
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, limit);
+
+// The channel's most viewed videos, highest first, for the homepage's
+// "الأكثر مشاهدة" box. Returns [] when the API can't answer, so the caller can
+// fall back. Reuses the full catalog cache when the visitor already has it,
+// since that ranks the same videos for free.
+export const fetchTopChannelVideos = async (limit = 7) => {
+  const catalog = readListCache(CHANNEL_CACHE_KEY, LIST_CACHE_TTL_MS);
+  if (catalog && catalog.length > 0) return rankByViews(catalog, limit);
+
+  const cacheKey = `${TOP_CACHE_KEY}_${limit}`;
+  const cached = readListCache(cacheKey, TOP_CACHE_TTL_MS);
+  if (cached) return cached;
+
+  if (topFetchInFlight.has(limit)) return topFetchInFlight.get(limit);
+
+  const promise = (async () => {
+    const { key: API_KEY, channelId: CHANNEL_ID } = await libraryConfig();
+    if (!API_KEY) return [];
+    try {
+      // Ask for extra results so any live broadcasts filtered out below don't
+      // leave the list short.
+      const { data: search } = await axios.get(`${YOUTUBE_API_BASE}/search`, {
+        params: {
+          part: "id",
+          channelId: CHANNEL_ID,
+          type: "video",
+          order: "viewCount",
+          maxResults: limit + 5,
+          key: API_KEY,
+        },
+      });
+
+      const ids = (search.items || []).map((item) => item.id?.videoId).filter(Boolean);
+      if (ids.length === 0) return [];
+
+      // Titles come from videos.list because search.list HTML-escapes them.
+      const { data } = await axios.get(`${YOUTUBE_API_BASE}/videos`, {
+        params: { part: "snippet,statistics,contentDetails", id: ids.join(","), key: API_KEY },
+      });
+
+      const videos = rankByViews(
+        (data.items || []).map((v) => ({
+          id: v.id,
+          title: fixTitle(v.snippet?.title || ""),
+          viewCount: Number(v.statistics?.viewCount || 0),
+          duration: parseISODuration(v.contentDetails?.duration || ""),
+        })),
+        limit
+      );
+
+      if (videos.length > 0) writeListCache(cacheKey, videos);
+      return videos;
+    } catch (e) {
+      console.error("YouTube top videos fetch error:", e);
+      return [];
+    } finally {
+      topFetchInFlight.delete(limit);
+    }
+  })();
+
+  topFetchInFlight.set(limit, promise);
+  return promise;
+};
+
+// Maps a video from this service to the props VideoCard expects.
+export const toVideoCardProps = (v) => ({
+  id: v.id,
+  title_ar: fixTitle(v.title),
+  description_ar: "",
+  thumbnail_url: v.thumbnail,
+  video_url: `https://www.youtube.com/watch?v=${v.id}`,
+  duration: v.duration,
+  view_count: v.viewCount,
+  publish_date: v.publishedAt,
+});
+
 const PLAYLISTS_CACHE_KEY = "makkah_yt_playlists";
 let playlistsFetchInFlight = null;
 
@@ -294,6 +449,7 @@ export const fetchChannelPlaylists = async () => {
   if (playlistsFetchInFlight) return playlistsFetchInFlight;
 
   playlistsFetchInFlight = (async () => {
+    const { key: API_KEY, channelId: CHANNEL_ID } = await playlistsConfig();
     if (!API_KEY) return [];
     try {
       const playlists = [];
@@ -312,7 +468,7 @@ export const fetchChannelPlaylists = async () => {
         (data.items || []).forEach((p) => {
           playlists.push({
             id: p.id,
-            title: p.snippet?.title || "",
+            title: fixTitle(p.snippet?.title || ""),
             thumbnail:
               p.snippet?.thumbnails?.high?.url ||
               p.snippet?.thumbnails?.medium?.url ||
@@ -352,10 +508,11 @@ export const fetchPlaylistVideos = async (playlistId) => {
   if (playlistVideosInFlight.has(playlistId)) return playlistVideosInFlight.get(playlistId);
 
   const promise = (async () => {
+    const { key: API_KEY } = await playlistsConfig();
     if (!API_KEY) return [];
     try {
-      const items = await fetchPlaylistItemsAll(playlistId);
-      const videos = await withVideoStats(items);
+      const items = await fetchPlaylistItemsAll(API_KEY, playlistId);
+      const videos = await withVideoStats(API_KEY, items);
       writeListCache(cacheKey, videos);
       return videos;
     } catch (e) {

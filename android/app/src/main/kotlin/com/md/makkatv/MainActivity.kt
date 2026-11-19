@@ -1,4 +1,4 @@
-package com.example.makkah_tv
+package com.md.makkatv
 
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
@@ -31,6 +31,15 @@ class MainActivity : FlutterActivity() {
                         if (videoPlaying) acquireWakeLock() else releaseWakeLock()
                         result.success(null)
                     }
+                    "startAudioService" -> {
+                        requestNotificationPermission()
+                        try { LiveAudioService.start(this) } catch (_: Exception) {}
+                        result.success(null)
+                    }
+                    "stopAudioService" -> {
+                        LiveAudioService.stop(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -55,6 +64,16 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    // Android 13+: the audio-only notification needs this permission to show.
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 4102)
+        }
+    }
+
     private fun acquireWakeLock() {
         if (wakeLock?.isHeld == true) return
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -71,6 +90,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         releaseWakeLock()
+        LiveAudioService.stop(this)
         super.onDestroy()
     }
 

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+
+      - name: Write env.json
+        run: |
+          cat > env.json <<EOF
+          {"YOUTUBE_API_KEY":"${{ secrets.YOUTUBE_API_KEY }}","YOUTUBE_ANDROID_CERT":"${{ secrets.YOUTUBE_ANDROID_CERT }}"}
+          EOF
+
+      - name: Decode keystore
+        run: echo "${{ secrets.UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+
+      - name: Write key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../upload-keystore.jks
+          EOF
+
+      - run: flutter build appbundle --dart-define-from-file=env.json
+
+      - uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.md.makkatv
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+
+      - name: Write env.json
+        run: |
+          cat > env.json <<EOF
+          {"YOUTUBE_API_KEY":"${{ secrets.YOUTUBE_API_KEY }}","YOUTUBE_ANDROID_CERT":"${{ secrets.YOUTUBE_ANDROID_CERT }}"}
+          EOF
+
+      - name: Install App Store Connect API key
+        run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
+
+      - run: flutter build ipa --dart-define-from-file=env.json --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file build/ios/ipa/*.ipa \
+            --apiKey ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
+            --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release.ipa
+          path: build/ios/ipa/*.ipa

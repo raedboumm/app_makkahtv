@@ -6,7 +6,7 @@
 }
 
 .news-title {
-    color: #1a1a1a;
+    color: var(--ci-text);
     align-items: center;
     gap: 10px;
     margin-bottom: 30px;
@@ -16,7 +16,7 @@
 }
 
 .section-title .title-bar {
-    background-color: wheat;
+    background: linear-gradient(180deg, var(--ci-gold), var(--ci-gold-dark));
     border-radius: 3px;
     width: 8px;
     height: 32px

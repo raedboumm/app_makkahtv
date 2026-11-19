@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/live.css";
-
-const STREAM_URL = "https://media2.streambrothers.com:1936/8122/8122/playlist.m3u8";
+import { getSiteConfig } from "../services/siteConfig";
 
 const LivePage = () => {
   const [started, setStarted] = useState(false);
@@ -19,6 +18,9 @@ const LivePage = () => {
     let cancelled = false;
     (async () => {
       try {
+        // Stream URL is managed from the back office (falls back to the default).
+        const STREAM_URL = (await getSiteConfig()).live.streamUrl;
+        if (cancelled) return;
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
           // Safari
           video.src = STREAM_URL;
