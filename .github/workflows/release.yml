@@ -68,6 +68,61 @@ jobs:
           mkdir -p ~/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
 
+      - name: Register CI device for provisioning
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          python3 << 'PYEOF'
+          import json, time, base64, subprocess, urllib.request, os
+
+          key_id = os.environ["API_KEY_ID"]
+          issuer_id = os.environ["API_ISSUER_ID"]
+          key_path = os.path.expanduser(f"~/private_keys/AuthKey_{key_id}.p8")
+
+          def b64url(data):
+              if isinstance(data, str): data = data.encode()
+              return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+          header = json.dumps({"alg":"ES256","kid":key_id,"typ":"JWT"})
+          now = int(time.time())
+          payload = json.dumps({"iss":issuer_id,"iat":now,"exp":now+1200,"aud":"appstoreconnect-v1"})
+          msg = f"{b64url(header)}.{b64url(payload)}"
+
+          der = subprocess.run(
+              ["openssl","dgst","-sha256","-sign",key_path],
+              input=msg.encode(), capture_output=True
+          ).stdout
+
+          # DER ECDSA -> raw R||S for ES256
+          i = 2
+          r_len = der[i+1]; r = der[i+2:i+2+r_len]; i += 2+r_len
+          s_len = der[i+1]; s = der[i+2:i+2+s_len]
+          raw = r[-32:].rjust(32, b"\x00") + s[-32:].rjust(32, b"\x00")
+          jwt_token = f"{msg}.{b64url(raw)}"
+
+          body = json.dumps({"data":{"type":"devices","attributes":{
+              "name":"CI Runner","platform":"IOS",
+              "udid":"00008101-000000000000001E"
+          }}}).encode()
+
+          req = urllib.request.Request(
+              "https://api.appstoreconnect.apple.com/v1/devices",
+              data=body,
+              headers={"Authorization":f"Bearer {jwt_token}","Content-Type":"application/json"}
+          )
+          try:
+              urllib.request.urlopen(req)
+              print("Device registered")
+          except urllib.error.HTTPError as e:
+              err = e.read().decode()
+              if e.code == 409 or "DUPLICATE" in err:
+                  print("Device already registered")
+              else:
+                  print(f"Device registration: {e.code} (non-fatal)")
+                  print(err[:300])
+          PYEOF
+
       - name: Build iOS (no codesign)
         run: flutter build ipa --dart-define-from-file=env.json --no-codesign
 
@@ -83,7 +138,7 @@ jobs:
             -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
             CODE_SIGN_STYLE="Automatic" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="5PH7734WT7" \
             archive
 
           xcodebuild -exportArchive \
