@@ -11,7 +11,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -32,7 +32,7 @@ jobs:
             'storeFile=../upload-keystore.jks' \
             > android/key.properties
 
-      - run: flutter build appbundle --dart-define-from-file=env.json
+      - run: flutter build appbundle --dart-define-from-file=env.json --android-skip-build-dependency-validation
 
       - uses: r0adkll/upload-google-play@v1
         with:
@@ -73,7 +73,10 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/ios/Runner.xcarchive \
-            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
             archive
 
           xcodebuild -exportArchive \
