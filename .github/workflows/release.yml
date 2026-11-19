@@ -71,16 +71,6 @@ jobs:
       - name: Build iOS (no codesign)
         run: flutter build ipa --dart-define-from-file=env.json --no-codesign
 
-      - name: Set Release signing to Apple Distribution
-        run: |
-          perl -i -pe '
-            $r = 1 if /97C147071CF9000F007C117D.*Release/;
-            if ($r && /DEVELOPMENT_TEAM/) {
-              $_ .= "\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";\n";
-              $r = 0;
-            }
-          ' ios/Runner.xcodeproj/project.pbxproj
-
       - name: Archive and export with API key
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace \
